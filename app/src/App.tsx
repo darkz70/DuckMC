@@ -117,7 +117,7 @@ export default function App() {
             ))}
             <span className="nav-chip">
               <PlatformIcon platform={platform} size={15} />
-              <span>{platformLabel(platform)} · v0.1.0</span>
+              <span>{platformLabel(platform)} · v0.1.1</span>
             </span>
           </div>
           <button className="nav-toggle" onClick={() => setMenuOpen((o) => !o)} aria-label="Меню">
