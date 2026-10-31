@@ -7,15 +7,15 @@
 #   Секрет скрыт в логах и не попадает в репозиторий — он только вшивается
 #   в собираемый APK.
 #
-# Запуск: вкладка Actions → «DuckMC Android APK» → Run workflow
-# Готовый файл: артефакт DuckMC-debug.apk на странице запуска.
+# Запуск: автоматически при каждом пуше, либо Actions → Run workflow.
+# Готовый файл: артефакт DuckMC-debug-apk на странице запуска.
 
 name: DuckMC Android APK
 
 on:
   workflow_dispatch:
   push:
-    branches: ['**']   # сборка на любой ветке — не нужно запускать вручную
+    branches: ['**']
 
 jobs:
   build:
@@ -24,10 +24,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Node.js
+      - name: Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: app/package-lock.json
 
@@ -37,28 +37,37 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Web build (client_id из секрета вшивается здесь)
+      - name: Установка зависимостей
+        working-directory: app
+        run: npm ci --no-audit --no-fund
+
+      - name: Вшиваем client_id из секрета
         working-directory: app
         env:
           VITE_MS_CLIENT_ID: ${{ secrets.VITE_MS_CLIENT_ID }}
         run: |
-          npm ci --no-audit --no-fund
           if [ -n "$VITE_MS_CLIENT_ID" ]; then
             printf 'VITE_MS_CLIENT_ID=%s\n' "$VITE_MS_CLIENT_ID" > .env
-            echo "client_id из секрета вшит в сборку"
+            echo "client_id вшит в сборку (длина: ${#VITE_MS_CLIENT_ID} символов)"
           else
-            echo "Секрет VITE_MS_CLIENT_ID не задан — вход Microsoft будет требовать ручного ввода ID"
+            echo "Секрет VITE_MS_CLIENT_ID не задан — вход Microsoft попросит ввести ID вручную"
           fi
-          npm run build
-          npx cap sync android
 
-      - name: Android build
+      - name: Сборка веб-части
+        working-directory: app
+        run: npm run build
+
+      - name: Синхронизация Capacitor
+        working-directory: app
+        run: npx cap sync android
+
+      - name: Сборка APK
         working-directory: app/android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Upload APK
+      - name: Выкладываем APK
         uses: actions/upload-artifact@v4
         with:
           name: DuckMC-debug-apk
