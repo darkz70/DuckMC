@@ -31,6 +31,21 @@ export default function HomeView(p: Props) {
 
   const installedCount = p.settings.installedJava.length;
 
+  const phaseIcon = (phase: string): string => {
+    switch (phase) {
+      case 'preparing': return '🧭';
+      case 'account': return '🔑';
+      case 'downloading': return '⬇️';
+      case 'verifying': return '🧪';
+      case 'jvm': return '☕';
+      case 'running': return '🚀';
+      case 'done': return '✅';
+      case 'error': return '💥';
+      case 'cancelled': return '✋';
+      default: return '🦆';
+    }
+  };
+
   return (
     <>
       <h1 className="view-title">🦆 {t('nav_home')}</h1>
@@ -80,11 +95,11 @@ export default function HomeView(p: Props) {
               )}
 
               <button
-                className={'btn-play' + (p.edition === 'bedrock' ? ' bedrock' : '')}
+                className={'btn-play' + (p.edition === 'bedrock' ? ' bedrock' : '') + (p.launchState.running ? ' busy' : '')}
                 onClick={p.launchState.running ? undefined : p.onPlay}
                 disabled={p.launchState.running}
               >
-                {p.launchState.running ? t('playing') : t('play')}
+                {p.launchState.running ? '🦆 ' + t('playing') : '▶ ' + t('play')}
               </button>
               {p.launchState.running && (
                 <button className="btn danger" onClick={p.onCancel}>
@@ -110,7 +125,7 @@ export default function HomeView(p: Props) {
         {progress && (
           <ProgressBar
             percent={progress.percent}
-            detail={progress.detail}
+            detail={phaseIcon(progress.phase) + ' ' + progress.detail}
             label={progress.phase === 'done' ? t('done') : progress.percent + '%'}
           />
         )}

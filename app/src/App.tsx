@@ -11,6 +11,7 @@ import DownloadsView from './views/DownloadsView';
 import AccountsView from './views/AccountsView';
 import SettingsView from './views/SettingsView';
 import { Toast } from './components/ui';
+import Splash from './components/Splash';
 
 type View = 'home' | 'downloads' | 'accounts' | 'settings';
 
@@ -149,6 +150,7 @@ export default function App() {
       </main>
 
       {toastMsg && <Toast text={toastMsg.text} error={toastMsg.err} />}
+      <Splash />
     </div>
   );
 }
