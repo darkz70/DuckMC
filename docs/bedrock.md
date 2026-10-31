@@ -1,0 +1,26 @@
+# Bedrock Edition в DuckMC — как это делаем
+
+Bedrock — **платная** игра, распространять её файлы сторонним лаунчером нельзя.
+Поэтому стратегия «найти и запустить», а не «скачать бесплатно»:
+
+## Android (приоритетная платформа)
+1. Проверяем, установлена ли `com.mojang.minecraftpe` (PackageManager).
+2. Если да — запускаем интентом (`monkey -p com.mojang.minecraftpe` / startActivity).
+3. Если нет — ведём пользователя в Google Play (кнопка во вкладке «Скачивание» уже есть).
+4. Опционально (продвинутый режим): импорт .mcaddon/.mcpack — открытие пакетов и
+   копирование в `Android/data/com.mojang.minecraftpe/files/games/com.mojang/`.
+
+## iOS
+- Проверка установки через схему `minecraft://`, иначе — App Store.
+
+## Windows
+- UWP-версия: обнаружение пакета `Microsoft.MinecraftUWP`, запуск через
+  `explorer.exe shell:appsFolder\Microsoft.MinecraftUWP_8wekyb3d8bbwe!App`.
+
+## macOS / Linux
+- Bedrock официально нет — показываем ссылку на minecraft.net и предложение
+  играть в Java Edition.
+
+## Замечание по совместимости
+Сообщество также использует проекты вроде PojavLauncher (Java на Android) —
+их опыт пригодится для шага «Java Edition на Android» в роадмапе.
