@@ -26,6 +26,7 @@ const dict: Record<string, [ru: string, en: string]> = {
   br_not_installed: ['Bedrock не найдена на устройстве', 'Bedrock not found on this device'],
   br_launch: ['Запустить игру', 'Launch game'],
   br_install_store: ['Установить из Play Store', 'Install from Play Store'],
+  br_trial: ['Пробная версия (бесплатно)', 'Free trial version'],
   br_apk_pick: ['Установить из файла (APK)', 'Install from file (APK)'],
   br_addon_pick: ['Импортировать .mcaddon / .mcpack', 'Import .mcaddon / .mcpack'],
   br_native_only: ['Эти кнопки работают в Android-сборке лаунчера (Capacitor). В браузере используйте Play Store.', 'These buttons work in the Android build (Capacitor). In browser use the Play Store.'],
@@ -34,6 +35,11 @@ const dict: Record<string, [ru: string, en: string]> = {
   br_secure_note: [
     'Кнопка «Установить из файла» работает с любым APK, который вы выберете сами — лаунчер не подсказывает и не хранит ссылки на сторонние сайты.',
     'The «Install from file» button works with any APK you choose yourself — the launcher does not suggest or store third-party site links.',
+  ],
+  br_faq_title: ['Почему нельзя скачать APK прямо из лаунчера?', 'Why cannot the launcher download the APK directly?'],
+  br_faq_a: [
+    'Bedrock — платная игра. Прямая раздача её APK без разрешения Mojang/Microsoft — пиратство: репозиторий DuckMC удалят по DMCA, а перепакованные APK — это именно те сборки с рекламой и неофициальными серверами. Официального APK-файла от Mojang не существует — игра распространяется только через магазины. Зато здесь собраны все быстрые способы: установка в один тап из Play Store, официальная бесплатная пробная версия или установка своего файла.',
+    'Bedrock is a paid game. Distributing its APK without Mojang/Microsoft permission is piracy: the DuckMC repo would be taken down via DMCA, and repacked APKs are exactly the ad-filled builds with unofficial servers. Mojang never ships an official APK file — the game is store-only. Here are all the fast ways instead: one-tap Play Store install, the official free trial, or installing your own file.',
   ],
   play: ['ИГРАТЬ', 'PLAY'],
   playing: ['ЗАПУСКАЕМ…', 'LAUNCHING…'],
