@@ -42,6 +42,14 @@ const EP = {
 const CLIENT_TOKEN = 'duckmc-launcher';
 const MS_SCOPE = 'XboxLive.signin offline_access';
 
+/**
+ * client_id, вшитый при сборке через app/.env (VITE_MS_CLIENT_ID).
+ * Файл .env не попадает в git — ID есть только в вашей APK-сборке,
+ * и его не нужно вводить руками в интерфейсе.
+ */
+export const BUILT_IN_CLIENT_ID: string =
+  (import.meta.env.VITE_MS_CLIENT_ID as string | undefined) ?? '';
+
 export interface AuthResult {
   ok: true;
   account: Account;
@@ -137,7 +145,8 @@ export interface DeviceCodeInfo {
 export async function startMicrosoftLogin(clientId: string): Promise<
   { ok: true; deviceCode: DeviceCodeInfo } | AuthError
 > {
-  if (!clientId.trim()) {
+  const id = clientId.trim() || BUILT_IN_CLIENT_ID;
+  if (!id) {
     return {
       ok: false,
       code: 'no_client_id',
@@ -146,7 +155,7 @@ export async function startMicrosoftLogin(clientId: string): Promise<
     };
   }
   try {
-    const body = new URLSearchParams({ client_id: clientId.trim(), scope: MS_SCOPE });
+    const body = new URLSearchParams({ client_id: id, scope: MS_SCOPE });
     const res = await fetch(EP.devicecode, { method: 'POST', body });
     const j = (await res.json()) as {
       user_code?: string;

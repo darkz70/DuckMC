@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Account, AuthProviderId, Settings } from '../core/types';
 import type { T } from '../i18n';
+import { BUILT_IN_CLIENT_ID } from '../core/auth';
 import {
   loginOffline,
   loginAuthServer,
@@ -129,7 +130,7 @@ function AddAccountModal(props: {
   const [busy, setBusy] = useState(false);
   const [msFlow, setMsFlow] = useState<MsFlow>({ step: 'idle' });
   const [msError, setMsError] = useState('');
-  const [clientId, setClientId] = useState(props.settings.accounts.microsoftClientId);
+  const [clientId, setClientId] = useState(props.settings.accounts.microsoftClientId || BUILT_IN_CLIENT_ID);
   const pollRef = useRef<number | null>(null);
   const cancelledRef = useRef(false);
 

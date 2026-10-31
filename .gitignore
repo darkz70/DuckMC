@@ -39,3 +39,6 @@ node_modules/
 app/dist/
 *.local
 .DS_Store
+
+# Секреты сборки (client_id и пр.) — только локально
+app/.env
