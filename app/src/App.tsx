@@ -13,12 +13,14 @@ import SettingsView from './views/SettingsView';
 import { Toast } from './components/ui';
 import { IconHome, IconDownload, IconMenu, IconUser, IconSliders, PlatformIcon } from './components/icons';
 import Splash from './components/Splash';
+import OnboardingView from './views/OnboardingView';
 
 type View = 'home' | 'downloads' | 'accounts' | 'settings';
 
 export default function App() {
   const [view, setView] = useState<View>('home');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [onboarded, setOnboarded] = useState(() => localStorage.getItem('duckmc.onboarding') === '1');
   const [settings, setSettingsState] = useState<Settings>(() => loadSettings());
   const [accounts, setAccountsState] = useState<Account[]>(() => loadAccounts());
   const [javaVersions, setJavaVersions] = useState<VersionInfo[]>(FALLBACK_JAVA_VERSIONS);
@@ -59,6 +61,10 @@ export default function App() {
   const setAccounts = useCallback((a: Account[]) => {
     setAccountsState(a);
     saveAccounts(a);
+    if (a.length > 0) {
+      localStorage.setItem('duckmc.onboarding', '1');
+      setOnboarded(true);
+    }
   }, []);
 
   const onPlay = useCallback(() => {
@@ -100,6 +106,24 @@ export default function App() {
     setMenuOpen(false);
   };
 
+  if (accounts.length === 0 && !onboarded) {
+    return (
+      <>
+        <OnboardingView
+          t={t}
+          settings={settings}
+          toast={toast}
+          onAdded={(acc) => setAccounts([acc])}
+          onSkip={() => {
+            localStorage.setItem('duckmc.onboarding', '1');
+            setOnboarded(true);
+          }}
+        />
+        {toastMsg && <Toast text={toastMsg.text} error={toastMsg.err} />}
+      </>
+    );
+  }
+
   return (
     <div className="app">
       <nav className="navbar">
@@ -117,7 +141,7 @@ export default function App() {
             ))}
             <span className="nav-chip">
               <PlatformIcon platform={platform} size={15} />
-              <span>{platformLabel(platform)} · v0.1.1</span>
+              <span>{platformLabel(platform)} · v0.1.2</span>
             </span>
           </div>
           <button className="nav-toggle" onClick={() => setMenuOpen((o) => !o)} aria-label="Меню">

@@ -1,7 +1,7 @@
 {
   "name": "duckmc-launcher",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "DuckMC — кроссплатформенный Minecraft лаунчер (Java + Bedrock). Android в первую очередь.",
   "type": "module",
   "scripts": {
