@@ -21,6 +21,7 @@ import {
   IconLock,
   IconPlay,
   IconX,
+  IconZap,
 } from '../components/icons';
 
 type Filter = 'all' | 'release' | 'snapshot' | 'old';
@@ -353,6 +354,33 @@ export default function DownloadsView(p: Props) {
             </div>
 
             <p className="hint" style={{ marginTop: 12 }}>{t('br_secure_note')}</p>
+          </div>
+
+          <div className="card">
+            <h3>
+              <IconZap size={18} /> {t('br_free_title')}
+            </h3>
+            <p className="hint">{t('br_free_text')}</p>
+            <div className="row" style={{ marginTop: 12 }}>
+              <button
+                className="btn primary"
+                onClick={() => p.openExternal('https://f-droid.org/packages/net.minetest.minetest/')}
+              >
+                <IconDownload size={16} />
+                <span>{t('br_free_get')}</span>
+              </button>
+              <button className="btn" onClick={() => p.openExternal('https://www.luanti.org/')}>
+                <IconExternal size={16} />
+                <span>{t('br_free_site')}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3>
+              <IconCheckCircle size={18} /> {t('br_install_store')}
+            </h3>
+            <p className="hint">{t('br_own_note')}</p>
           </div>
 
           <div className="card">
