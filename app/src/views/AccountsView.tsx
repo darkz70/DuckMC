@@ -1,4 +1,4 @@
-// DuckMC — аккаунты: Microsoft, ely.by (или совместимый сервер), оффлайн
+// DuckMC — аккаунты: настоящий вход Microsoft, ely.by (или совместимый сервер), оффлайн
 import { useEffect, useRef, useState } from 'react';
 import type { Account, AuthProviderId, Settings } from '../core/types';
 import type { T } from '../i18n';
@@ -7,13 +7,14 @@ import {
   loginAuthServer,
   startMicrosoftLogin,
   pollMicrosoftToken,
+  completeMicrosoftAuth,
   providerLabel,
   avatarUrl,
   type AuthResponse,
   type DeviceCodeInfo,
 } from '../core/auth';
-import { Modal } from '../components/ui';
-import { IconGamepad, IconGlobe, IconPlus, IconStar, IconTrash, IconUser, IconWindows } from '../components/icons';
+import { Modal, ProgressBar } from '../components/ui';
+import { IconGamepad, IconGlobe, IconKey, IconPlus, IconStar, IconTrash, IconUser, IconWindows } from '../components/icons';
 
 interface Props {
   t: T;
@@ -22,6 +23,12 @@ interface Props {
   onSaveAccounts: (a: Account[]) => void;
   toast: (msg: string, err?: boolean) => void;
 }
+
+/** Состояния настоящего Microsoft-входа */
+type MsFlow =
+  | { step: 'idle' }
+  | { step: 'code'; info: DeviceCodeInfo }
+  | { step: 'chain'; detail: string; percent: number };
 
 export default function AccountsView(p: Props) {
   const t = p.t;
@@ -47,7 +54,7 @@ export default function AccountsView(p: Props) {
         <IconUser size={26} />
         <span>{t('accounts_title')}</span>
       </h1>
-      <p className="view-sub">Microsoft · ely.by / совместимые (URL настраивается) · Оффлайн</p>
+      <p className="view-sub">{t('acc_subtitle')}</p>
 
       {p.accounts.length === 0 && (
         <div className="card">
@@ -72,7 +79,7 @@ export default function AccountsView(p: Props) {
                   {t('make_active')}
                 </button>
               )}
-              <button className="btn small danger" onClick={() => remove(a.id)} aria-label="Удалить">
+              <button className="btn small danger" onClick={() => remove(a.id)} aria-label={t('remove')}>
                 <IconTrash size={16} />
               </button>
             </div>
@@ -120,35 +127,26 @@ function AddAccountModal(props: {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [busy, setBusy] = useState(false);
-  const [device, setDevice] = useState<DeviceCodeInfo | null>(null);
+  const [msFlow, setMsFlow] = useState<MsFlow>({ step: 'idle' });
   const [msError, setMsError] = useState('');
+  const [clientId, setClientId] = useState(props.settings.accounts.microsoftClientId);
   const pollRef = useRef<number | null>(null);
+  const cancelledRef = useRef(false);
 
-  useEffect(() => () => {
-    if (pollRef.current) window.clearInterval(pollRef.current);
-  }, []);
-
-  const handleAuthResp = (r: AuthResponse, demoAccount?: Account) => {
-    if (r.ok) {
-      props.onAdded(r.account);
-    } else {
-      if (r.demoFallback && demoAccount) {
-        // Сеть заблокирована (CORS в браузере) — предлагаем демо-сохранение
-        props.toast(r.message, true);
-      } else if (r.code === 'no_client_id') {
-        setMsError(r.message);
-      } else if (r.code !== 'pending') {
-        props.toast(r.message, true);
-      }
-    }
-  };
+  useEffect(
+    () => () => {
+      if (pollRef.current) window.clearInterval(pollRef.current);
+    },
+    [],
+  );
 
   const submitOffline = () => {
     const r = loginOffline(nick);
-    handleAuthResp(r);
+    if (r.ok) props.onAdded(r.account);
+    else props.toast(r.message, true);
   };
 
-  const submitEly = async (demo: boolean) => {
+  const submitEly = async () => {
     setBusy(true);
     const r = await loginAuthServer({
       serverUrl: props.settings.accounts.authServerUrl,
@@ -156,62 +154,80 @@ function AddAccountModal(props: {
       password: pass,
     });
     setBusy(false);
-    if (!r.ok && r.demoFallback && demo) {
-      props.onAdded({
-        id: 'acc_demo_' + Date.now().toString(36),
-        nickname: email.split('@')[0] || 'Player',
-        uuid: 'demo-' + Math.random().toString(36).slice(2, 10),
-        provider: 'elyby',
-        email,
-        createdAt: Date.now(),
-      });
-      return;
-    }
-    handleAuthResp(r);
+    if (r.ok) props.onAdded(r.account);
+    else props.toast(r.message + (r.demoFallback ? ' ' + t('ely_native_note') : ''), !!r.demoFallback || r.code !== 'credentials');
   };
 
-  const submitMicrosoft = async (demo: boolean) => {
-    setBusy(true);
+  /** НАСТОЯЩИЙ вход Microsoft: код → токен → XBL → XSTS → профиль */
+  const submitMicrosoft = async () => {
     setMsError('');
-    const r = await startMicrosoftLogin(props.settings.accounts.microsoftClientId);
-    setBusy(false);
-    if (r.ok) {
-      setDevice(r.deviceCode);
-      // Поллинг токена (в демо обычно упрётся в CORS — покажем это мягко)
-      pollRef.current = window.setInterval(async () => {
-        const tr = await pollMicrosoftToken(props.settings.accounts.microsoftClientId, r.deviceCode);
-        if (tr.ok) {
-          if (pollRef.current) window.clearInterval(pollRef.current);
-          props.onAdded(tr.account);
-        }
-      }, (r.deviceCode.interval ?? 5) * 1000);
+    cancelledRef.current = false;
+    const start = await startMicrosoftLogin(clientId);
+    if (!start.ok) {
+      setMsError(start.message);
       return;
     }
-    if (r.demoFallback && demo) {
-      props.onAdded({
-        id: 'acc_ms_demo_' + Date.now().toString(36),
-        nickname: 'Steve',
-        uuid: 'demo-ms-' + Math.random().toString(36).slice(2, 10),
-        provider: 'microsoft',
-        createdAt: Date.now(),
-      });
-      return;
+    const info = start.deviceCode;
+    setMsFlow({ step: 'code', info });
+
+    const tick = async () => {
+      if (cancelledRef.current) {
+        if (pollRef.current) window.clearInterval(pollRef.current);
+        return;
+      }
+      const r = await pollMicrosoftToken(clientId, info);
+      if (r.state === 'pending') return; // ждём следующего такта
+      if (r.state === 'slowdown') return; // Microsoft просит реже — интервал уже с запасом
+      window.clearInterval(pollRef.current!);
+      pollRef.current = null;
+
+      if (r.state === 'expired') {
+        setMsFlow({ step: 'idle' });
+        setMsError(t('ms_expired'));
+        return;
+      }
+      if (r.state === 'denied') {
+        setMsFlow({ step: 'idle' });
+        setMsError(t('ms_denied'));
+        return;
+      }
+
+      // Токен получен — идём по цепочке до реального профиля
+      try {
+        setMsFlow({ step: 'chain', detail: t('ms_step_xbl'), percent: 55 });
+        const acc = await completeMicrosoftAuth(r.accessToken);
+        setMsFlow({ step: 'chain', detail: t('ms_step_profile'), percent: 95 });
+        props.onAdded(acc);
+      } catch (e) {
+        setMsFlow({ step: 'idle' });
+        setMsError(e instanceof Error ? e.message : String(e));
+      }
+    };
+
+    pollRef.current = window.setInterval(() => void tick(), (info.interval + 1) * 1000);
+  };
+
+  const cancelMicrosoft = () => {
+    cancelledRef.current = true;
+    if (pollRef.current) {
+      window.clearInterval(pollRef.current);
+      pollRef.current = null;
     }
-    handleAuthResp(r);
+    setMsFlow({ step: 'idle' });
   };
 
   return (
     <Modal title={t('add_account')} onClose={props.onClose}>
       <div className="provider-tabs">
-        <button className={'chip' + (props.prov === 'microsoft' ? ' on' : '')} onClick={() => setProv0('microsoft')}>
+        <button className={'chip' + (props.prov === 'microsoft' ? ' on' : '')} onClick={() => props.setProv('microsoft')}>
           <IconWindows size={16} />
           <span>{t('provider_microsoft')}</span>
         </button>
-        <button className={'chip' + (props.prov === 'elyby' ? ' on' : '')} onClick={() => setProv0('elyby')}>
+        <button className={'chip' + (props.prov === 'elyby' ? ' on' : '')} onClick={() => props.setProv('elyby')}>
           <IconGlobe size={16} />
           <span>{t('provider_elyby')}</span>
         </button>
-        <button className={'chip' + (props.prov === 'offline' ? ' on' : '')} onClick={() => setProv0('offline')}>
+        <button className={'chip' + (props.prov === 'offline' ? ' on' : '')} onClick={() => props.setProv('offline')}>
           <IconGamepad size={16} />
           <span>{t('provider_offline')}</span>
         </button>
@@ -235,9 +251,7 @@ function AddAccountModal(props: {
           <div className="field">
             <label>{t('auth_server_url')}</label>
             <input value={props.settings.accounts.authServerUrl} readOnly />
-            <span className="hint">
-              Работает с ely.by и любыми совместимыми authserver-системами. Свой адрес указывается в Настройки → Авторизация.
-            </span>
+            <span className="hint">{t('ely_url_hint')}</span>
           </div>
           <div className="field">
             <label>{t('elyby_login')}</label>
@@ -247,55 +261,70 @@ function AddAccountModal(props: {
             <label>{t('password')}</label>
             <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} />
           </div>
-          <div className="row">
-            <button className="btn primary" onClick={() => submitEly(false)} disabled={busy || !email || !pass}>
-              {t('login')}
-            </button>
-            <button className="btn" onClick={() => submitEly(true)} disabled={busy || !email}>
-              {t('demo_login')}
-            </button>
-          </div>
+          <button className="btn primary" onClick={() => void submitEly()} disabled={busy || !email || !pass}>
+            {t('login')}
+          </button>
+          <p className="hint" style={{ marginTop: 10 }}>{t('ely_native_note')}</p>
         </>
       )}
 
       {props.prov === 'microsoft' && (
         <>
-          {device ? (
-            <>
-              <p style={{ fontWeight: 800 }}>{t('ms_device_hint')}</p>
-              <p style={{ fontSize: 30, fontWeight: 900, letterSpacing: 3, background: 'var(--input-bg)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--input-border)', textAlign: 'center' }}>
-                {device.userCode}
-              </p>
-              <p className="hint">
-                <a href={device.verificationUri} target="_blank" rel="noopener noreferrer">{device.verificationUri}</a>
-              </p>
-              <p className="hint">⏳ {t('ms_waiting')}</p>
-            </>
-          ) : (
+          {msFlow.step === 'idle' && (
             <>
               <div className="field">
                 <label>{t('ms_client_id')}</label>
-                <input value={props.settings.accounts.microsoftClientId} readOnly />
+                <input
+                  value={clientId}
+                  onChange={(e) => setClientId(e.target.value)}
+                  placeholder="00000000-0000-0000-0000-000000000000"
+                />
                 <span className="hint">{t('ms_client_hint')}</span>
               </div>
               {msError && <p className="hint" style={{ color: 'var(--danger)' }}>{msError}</p>}
-              <div className="row">
-                <button className="btn primary" onClick={() => submitMicrosoft(false)} disabled={busy}>
-                  <IconWindows size={16} />
-                  <span>{t('login')}</span>
-                </button>
-                <button className="btn" onClick={() => submitMicrosoft(true)} disabled={busy}>
-                  {t('demo_login')}
-                </button>
-              </div>
+              <button className="btn primary" onClick={() => void submitMicrosoft()} disabled={busy}>
+                <IconKey size={16} />
+                <span>{t('ms_login_btn')}</span>
+              </button>
+            </>
+          )}
+
+          {msFlow.step === 'code' && (
+            <>
+              <p style={{ fontWeight: 700 }}>{t('ms_device_hint')}</p>
+              <p
+                className="ms-usercode"
+                onClick={() => {
+                  navigator.clipboard?.writeText(msFlow.info.userCode);
+                  props.toast(t('ms_copied'));
+                }}
+                title={t('ms_copied')}
+              >
+                {msFlow.info.userCode}
+              </p>
+              <p className="hint">
+                <a href={msFlow.info.verificationUri} target="_blank" rel="noopener noreferrer">
+                  {msFlow.info.verificationUri}
+                </a>
+              </p>
+              <p className="hint">{t('ms_waiting')}</p>
+              {msError && <p className="hint" style={{ color: 'var(--danger)' }}>{msError}</p>}
+              <button className="btn danger" onClick={cancelMicrosoft} style={{ marginTop: 10 }}>
+                {t('cancel')}
+              </button>
+            </>
+          )}
+
+          {msFlow.step === 'chain' && (
+            <>
+              <ProgressBar percent={msFlow.percent} detail={msFlow.detail} label={msFlow.percent + '%'} />
+              <button className="btn" onClick={cancelMicrosoft} style={{ marginTop: 12 }}>
+                {t('cancel')}
+              </button>
             </>
           )}
         </>
       )}
     </Modal>
   );
-
-  function setProv0(id: AuthProviderId) {
-    props.setProv(id);
-  }
 }

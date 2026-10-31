@@ -1,8 +1,14 @@
-// DuckMC — авторизация аккаунтов.
-// Провайдеры: Microsoft (device code), ely.by-совместимый authserver (по умолчанию
-// authserver.ely.by; URL можно поменять на любой аналог, например eby.by), Оффлайн.
-// В веб-демо запросы могут блокироваться CORS — тогда предлагаем «демо-вход»,
-// а на нативных платформах (Tauri/Capacitor) запросы идут без ограничений.
+// DuckMC — НАСТОЯЩАЯ авторизация Microsoft (полная цепочка, как у больших лаунчеров):
+//   1) OAuth 2.0 Device Code → токен Microsoft
+//   2) Xbox Live (user.auth.xboxlive.com)
+//   3) XSTS (xsts.auth.xboxlive.com)
+//   4) Minecraft (api.minecraftservices.com/authentication/login_with_xbox)
+//   5) Профиль: настоящий ник + UUID игрока
+// В браузере (превью) запросы идут через прокси dev-сервера (/msauth/*),
+// в Android/десктоп-сборке — напрямую (CapacitorHttp, без CORS).
+// Единственное, что нужен свой Azure client_id — требование Microsoft, обойти нельзя.
+
+import { Capacitor } from '@capacitor/core';
 import type { Account, AuthProviderId } from './types';
 import { offlineUuid } from './md5';
 
@@ -10,61 +16,58 @@ export function makeId(): string {
   return 'acc_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
+/** В браузере — через прокси vite (нет CORS), в нативе — напрямую */
+const NATIVE = Capacitor.isNativePlatform();
+const EP = {
+  devicecode: NATIVE
+    ? 'https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode'
+    : '/msauth/devicecode',
+  token: NATIVE
+    ? 'https://login.microsoftonline.com/consumers/oauth2/v2.0/token'
+    : '/msauth/token',
+  xbl: NATIVE
+    ? 'https://user.auth.xboxlive.com/user/authenticate'
+    : '/msauth/xbl',
+  xsts: NATIVE
+    ? 'https://xsts.auth.xboxlive.com/xsts/authorize'
+    : '/msauth/xsts',
+  mcLogin: NATIVE
+    ? 'https://api.minecraftservices.com/authentication/login_with_xbox'
+    : '/msauth/mclogin',
+  profile: NATIVE
+    ? 'https://api.minecraftservices.com/minecraft/profile'
+    : '/msauth/profile',
+};
+
+const CLIENT_TOKEN = 'duckmc-launcher';
+const MS_SCOPE = 'XboxLive.signin offline_access';
+
 export interface AuthResult {
   ok: true;
   account: Account;
 }
 export interface AuthError {
   ok: false;
-  code:
-    | 'network'
-    | 'credentials'
-    | 'rate_limit'
-    | 'no_client_id'
-    | 'cancelled'
-    | 'pending'
-    | 'unknown';
+  code: 'network' | 'credentials' | 'rate_limit' | 'no_client_id' | 'cancelled' | 'pending' | 'unknown';
   message: string;
-  /** если true — можно сохранить аккаунт локально как демо */
   demoFallback?: boolean;
-  deviceCode?: DeviceCodeInfo;
 }
 export type AuthResponse = AuthResult | AuthError;
-
-export interface DeviceCodeInfo {
-  userCode: string;
-  verificationUri: string;
-  deviceCode: string;
-  interval: number;
-  expiresAt: number;
-}
-
-const CLIENT_TOKEN = 'duckmc-launcher';
 
 // ---------- Оффлайн ----------
 
 export function loginOffline(nickname: string): AuthResponse {
   const nick = nickname.trim();
   if (!/^[A-Za-z0-9_]{3,16}$/.test(nick)) {
-    return {
-      ok: false,
-      code: 'credentials',
-      message: 'Ник должен быть 3–16 символов: латиница, цифры и _',
-    };
+    return { ok: false, code: 'credentials', message: 'Ник должен быть 3–16 символов: латиница, цифры и _' };
   }
   return {
     ok: true,
-    account: {
-      id: makeId(),
-      nickname: nick,
-      uuid: offlineUuid(nick),
-      provider: 'offline',
-      createdAt: Date.now(),
-    },
+    account: { id: makeId(), nickname: nick, uuid: offlineUuid(nick), provider: 'offline', createdAt: Date.now() },
   };
 }
 
-// ---------- ely.by / совместимые authserver-провайдеры ----------
+// ---------- ely.by / совместимые authserver ----------
 
 export interface ElyByCreds {
   serverUrl: string;
@@ -78,11 +81,7 @@ export async function loginAuthServer(creds: ElyByCreds): Promise<AuthResponse> 
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: creds.username,
-        password: creds.password,
-        clientToken: CLIENT_TOKEN,
-      }),
+      body: JSON.stringify({ username: creds.username, password: creds.password, clientToken: CLIENT_TOKEN }),
     });
     if (res.status === 401 || res.status === 403) {
       return { ok: false, code: 'credentials', message: 'Неверный логин или пароль' };
@@ -120,95 +119,176 @@ export async function loginAuthServer(creds: ElyByCreds): Promise<AuthResponse> 
       code: 'network',
       demoFallback: true,
       message:
-        'Не удалось связаться с ' +
-        creds.serverUrl +
-        ' (возможно, CORS в браузере). Можно сохранить аккаунт в демо-режиме.',
+        'Не удалось связаться с ' + creds.serverUrl + ' (в браузере мешает CORS; в Android-сборке вход пройдёт напрямую).',
     };
   }
 }
 
-// ---------- Microsoft (device code flow) ----------
+// ---------- Microsoft: шаг 1. Код устройства ----------
 
-const MS_DEVICECODE_URL = 'https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode';
-const MS_TOKEN_URL = 'https://login.microsoftonline.com/consumers/oauth2/v2.0/token';
-const MS_SCOPE = 'XboxLive.signin offline_access';
+export interface DeviceCodeInfo {
+  userCode: string;
+  verificationUri: string;
+  deviceCode: string;
+  interval: number;
+  expiresAt: number;
+}
 
-export type MsStartResult = { ok: true; deviceCode: DeviceCodeInfo } | AuthError;
-
-export async function startMicrosoftLogin(clientId: string): Promise<MsStartResult> {
-  if (!clientId) {
+export async function startMicrosoftLogin(clientId: string): Promise<
+  { ok: true; deviceCode: DeviceCodeInfo } | AuthError
+> {
+  if (!clientId.trim()) {
     return {
       ok: false,
       code: 'no_client_id',
       message:
-        'Для входа через Microsoft нужен свой Azure client_id (Настройки → Авторизация). ' +
-        'Инструкция: docs/auth.md',
+        'Нужен Azure client_id (бесплатно, 5 минут): portal.azure.com → Microsoft Entra ID → Регистрация приложений → «Общедоступное клиентское приложение», включите «Разрешить потоки общедоступных клиентов», скопируйте ID (Application/client Id) и вставьте здесь. Это требование Microsoft — без своего ID вход невозможен ни в одном лаунчере.',
     };
   }
   try {
-    const body = new URLSearchParams({ client_id: clientId, scope: MS_SCOPE });
-    const res = await fetch(MS_DEVICECODE_URL, { method: 'POST', body });
-    if (!res.ok) return { ok: false, code: 'unknown', message: 'Microsoft ответил ошибкой ' + res.status };
+    const body = new URLSearchParams({ client_id: clientId.trim(), scope: MS_SCOPE });
+    const res = await fetch(EP.devicecode, { method: 'POST', body });
     const j = (await res.json()) as {
-      user_code: string;
-      verification_uri: string;
-      device_code: string;
+      user_code?: string;
+      verification_uri?: string;
+      device_code?: string;
       interval?: number;
-      expires_in: number;
+      expires_in?: number;
+      error?: string;
+      error_description?: string;
     };
+    if (j.error || !j.user_code || !j.device_code) {
+      return {
+        ok: false,
+        code: 'unknown',
+        message:
+          'Microsoft отклонил запрос: ' +
+          (j.error_description ?? j.error ?? 'проверьте client_id (и включённые «публичные потоки»)'),
+      };
+    }
     return {
       ok: true,
       deviceCode: {
         userCode: j.user_code,
-        verificationUri: j.verification_uri,
+        verificationUri: j.verification_uri ?? 'https://www.microsoft.com/link',
         deviceCode: j.device_code,
         interval: j.interval ?? 5,
-        expiresAt: Date.now() + j.expires_in * 1000,
+        expiresAt: Date.now() + (j.expires_in ?? 900) * 1000,
       },
     };
-  } catch {
-    return {
-      ok: false,
-      code: 'network',
-      demoFallback: true,
-      message: 'Браузер заблокировал запрос к Microsoft (CORS). На нативной платформе поток будет работать полностью.',
-    };
+  } catch (e) {
+    return { ok: false, code: 'network', message: 'Сеть недоступна: ' + String(e) };
   }
 }
 
-export async function pollMicrosoftToken(
-  clientId: string,
-  info: DeviceCodeInfo,
-): Promise<AuthResponse> {
+// ---------- Microsoft: шаг 2. Поллинг токена ----------
+
+export type MsPollResult =
+  | { state: 'pending' }
+  | { state: 'slowdown' }
+  | { state: 'expired' }
+  | { state: 'denied' }
+  | { state: 'ok'; accessToken: string };
+
+export async function pollMicrosoftToken(clientId: string, info: DeviceCodeInfo): Promise<MsPollResult> {
   try {
     const body = new URLSearchParams({
-      client_id: clientId,
+      client_id: clientId.trim(),
       grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
       device_code: info.deviceCode,
     });
-    const res = await fetch(MS_TOKEN_URL, { method: 'POST', body });
-    const j = (await res.json()) as { access_token?: string; error?: string; error_description?: string };
-    if (j.access_token) {
-      // Здесь дальше идёт цепочка XBL → XSTS → Minecraft; пока сохраняем вход как демо,
-      // полная цепочка описана в docs/auth.md и реализуется в нативном адаптере.
-      return {
-        ok: true,
-        account: {
-          id: makeId(),
-          nickname: 'Microsoft Player',
-          uuid: offlineUuid('Microsoft Player'),
-          provider: 'microsoft',
-          accessToken: j.access_token.slice(0, 12) + '…',
-          createdAt: Date.now(),
-        },
-      };
-    }
-    if (j.error === 'authorization_pending') return { ok: false, code: 'pending', message: 'Ожидаем подтверждение…' };
-    if (j.error === 'slow_down') return { ok: false, code: 'rate_limit', message: 'Слишком часто, замедляемся…' };
-    return { ok: false, code: 'cancelled', message: j.error_description || 'Вход отменён' };
+    const res = await fetch(EP.token, { method: 'POST', body });
+    const j = (await res.json()) as {
+      access_token?: string;
+      error?: string;
+      error_description?: string;
+    };
+    if (j.access_token) return { state: 'ok', accessToken: j.access_token };
+    if (j.error === 'authorization_pending') return { state: 'pending' };
+    if (j.error === 'slow_down') return { state: 'slowdown' };
+    if (j.error === 'authorization_expired') return { state: 'expired' };
+    if (j.error === 'authorization_declined') return { state: 'denied' };
+    return { state: 'denied' };
   } catch {
-    return { ok: false, code: 'network', message: 'Сеть недоступна' };
+    return { state: 'pending' }; // сетевой сбой — попробуем на следующем такте
   }
+}
+
+// ---------- Microsoft: шаги 3–5. XBL → XSTS → Minecraft-профиль ----------
+
+export interface McProfile {
+  name: string;
+  id: string;
+}
+
+async function postJson(url: string, payload: unknown): Promise<Record<string, unknown>> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const j = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) {
+    const err = (j as { XErr?: number }).XErr;
+    if (err === 2148910233) throw new Error('У этого аккаунта нет Xbox Live. Создайте профиль Xbox на xbox.com и повторите.');
+    if (err === 2148910234) throw new Error('Детский аккаунт: нужно разрешение взрослого в настройках семьи Microsoft.');
+    if (err === 2148910235 || err === 2148910238) throw new Error('Аккаунт из региона, где Xbox Live недоступен, либо возрастные ограничения.');
+    throw new Error('Ошибка аутентификации (HTTP ' + res.status + (err ? ', XErr ' + err : '') + ')');
+  }
+  return j;
+}
+
+/** Полная цепочка до настоящего профиля Minecraft. Бросает Error с понятным текстом. */
+export async function completeMicrosoftAuth(msAccessToken: string): Promise<Account> {
+  // XBL
+  const xbl = await postJson(EP.xbl, {
+    Properties: { AuthMethod: 'RPS', SiteName: 'user.auth.xboxlive.com', RpsTicket: 'd=' + msAccessToken },
+    RelyingParty: 'http://auth.xboxlive.com',
+    TokenType: 'JWT',
+  });
+  const xblToken = (xbl as { Token?: string }).Token;
+  const uhs = ((xbl as { DisplayClaims?: { xui?: { uhs?: string }[] } }).DisplayClaims?.xui ?? [])[0]?.uhs;
+  if (!xblToken || !uhs) throw new Error('Xbox Live не вернул токен');
+
+  // XSTS
+  const xsts = await postJson(EP.xsts, {
+    Properties: { SandboxId: 'RETAIL', UserTokens: [xblToken] },
+    RelyingParty: 'rp://api.minecraftservices.com/',
+    TokenType: 'JWT',
+  });
+  const xstsToken = (xsts as { Token?: string }).Token;
+  const xstsUhs = ((xsts as { DisplayClaims?: { xui?: { uhs?: string }[] } }).DisplayClaims?.xui ?? [])[0]?.uhs ?? uhs;
+  if (!xstsToken) throw new Error('XSTS не вернул токен');
+
+  // Minecraft
+  const mcRes = await fetch(EP.mcLogin, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ identityToken: 'XBL3.0 x=' + xstsUhs + ';' + xstsToken }),
+  });
+  if (!mcRes.ok) throw new Error('Minecraft-аутентификация не прошла (HTTP ' + mcRes.status + ')');
+  const mc = (await mcRes.json()) as { access_token?: string };
+  if (!mc.access_token) throw new Error('Minecraft не вернул токен сессии');
+
+  // Профиль — вот он, настоящий ник и UUID
+  const profRes = await fetch(EP.profile, {
+    headers: { Authorization: 'Bearer ' + mc.access_token },
+  });
+  if (profRes.status === 404) {
+    throw new Error('У аккаунта нет профиля Minecraft: купите Java Edition на minecraft.net или сыграйте через Game Pass.');
+  }
+  if (!profRes.ok) throw new Error('Профиль Minecraft не получен (HTTP ' + profRes.status + ')');
+  const prof = (await profRes.json()) as McProfile;
+  if (!prof.name || !prof.id) throw new Error('Профиль Minecraft пуст');
+
+  return {
+    id: makeId(),
+    nickname: prof.name,
+    uuid: prof.id,
+    provider: 'microsoft' as AuthProviderId,
+    accessToken: mc.access_token,
+    createdAt: Date.now(),
+  };
 }
 
 export function providerLabel(p: AuthProviderId): string {
@@ -220,7 +300,5 @@ export function providerLabel(p: AuthProviderId): string {
 }
 
 export function avatarUrl(acc: Account): string {
-  // Мини-лицо скина по нику (minotar). Для фирменных скинов ely.by позже
-  // добавим рендер через canvas + skins.ely.by — см. docs/auth.md
   return `https://minotar.net/helm/${encodeURIComponent(acc.nickname)}/64.png`;
 }

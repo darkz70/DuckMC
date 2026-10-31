@@ -872,3 +872,20 @@ p.hint.with-ico svg { color: var(--accent); flex-shrink: 0; margin-top: 3px; }
 
 /* Герой без визуальной колонки — контент по центру слева */
 .hero-inner { grid-template-columns: 1fr; max-width: 760px; }
+
+/* Код входа Microsoft */
+.ms-usercode {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  text-align: center;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 12px 0;
+  cursor: pointer;
+  user-select: all;
+  transition: border-color 0.2s;
+}
+.ms-usercode:hover { border-color: var(--accent); }

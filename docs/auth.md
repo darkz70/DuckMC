@@ -2,30 +2,58 @@
 
 Поддерживаются три провайдера. Активный аккаунт помечается звездой и используется при запуске.
 
-## 1. Microsoft (лицензия)
+# Авторизация в DuckMC
 
-Поток — OAuth 2.0 Device Code (удобно для консоли/Android TV/телефона):
+## 1. Microsoft — НАСТОЯЩИЙ вход (полная цепочка)
+
+Реализовано в `app/src/core/auth.ts` целиком, как в больших лаунчерах:
 
 ```
-1) POST https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode
-   client_id=<ВАШ_ID>&scope=XboxLive.signin offline_access
+1) OAuth 2.0 Device Code
+   POST login.microsoftonline.com/consumers/oauth2/v2.0/devicecode
+   (client_id, scope=XboxLive.signin offline_access)
    → user_code, verification_uri, device_code
-2) Пользователь открывает https://www.microsoft.com/link и вводит код
-3) Поллинг POST .../oauth2/v2.0/token (grant_type=urn:ietf:params:oauth:grant-type:device_code)
-4) Цепочка: access_token → Xbox Live (user.auth.xboxlive.com)
-   → XSTS (xsts.auth.xboxlive.com) → uhs+xsts_token
-5) POST https://api.minecraftservices.com/authentication/login_with_xbox
-6) GET  https://api.minecraftservices.com/minecraft/profile → ник, UUID, скин
+2) Пользователь открывает microsoft.com/link, вводит код, входит
+3) Поллинг .../oauth2/v2.0/token → access_token Microsoft
+4) Xbox Live:  POST user.auth.xboxlive.com/user/authenticate  → XBL token + UHS
+5) XSTS:       POST xsts.auth.xboxlive.com/xsts/authorize     → XSTS token
+6) Minecraft:  POST api.minecraftservices.com/authentication/login_with_xbox
+               (identityToken: "XBL3.0 x=<uhs>;<xsts>")
+               → access_token игры
+7) Профиль:    GET api.minecraftservices.com/minecraft/profile
+               → НАСТОЯЩИЙ ник + UUID игрока (не демо!)
 ```
 
-**Нужен свой Azure client_id** (бесплатно): portal.azure.com → App registrations →
-Public client/native → включить «Allow public client flows» → ID вставить в
-Настройки → Авторизация. Без него кнопка входа подскажет об этом.
+Обработаны ошибки XSTS: нет Xbox-профиля (2148910233), детский аккаунт (2148910234),
+регион (2148910235/238), нет купленной игры (профиль 404) — всё с понятными текстами.
 
-В браузере шаги 1/3 могут блокироваться CORS — тогда UI предлагает «Демо-вход».
-В нативной обёртке (Tauri/Capacitor) запросы идут напрямую без CORS.
+### Где работает
 
-## 2. ely.by / совместимые authserver'ы (в т.ч. ваш собственный, напр. «eby.by»)
+- **Android/десктоп (Capacitor):** напрямую, в `capacitor.config.ts` включён
+  `CapacitorHttp` — запросы идут через нативный слой, CORS нет.
+- **Браузер (`npm run dev`):** vite-прокси `/msauth/*` пересылает запросы серверам
+  Microsoft — вход работает и в браузере на вашем ПК.
+- **Онлайн-превью в песочнице:** у песочницы исходящий доступ ограничен (только
+  GitHub/npm), поэтому оттуда до Microsoft не достучаться — это ограничение
+  витрины, не кода.
+
+### Azure client_id — единственное, что нужно от вас
+
+Требование Microsoft: у каждого приложения-лаунчера свой client_id. Бесплатно, 5 минут:
+
+1. portal.azure.com → **Microsoft Entra ID** → **Регистрация приложений** → «Новая регистрация»
+2. Тип: **«Общедоступное клиентское приложение (без платформы)»** (public client/native)
+3. Учётные записи: «Personal Microsoft accounts only» (или любые)
+4. **Authentication → Advanced settings → Allow public client flows → Yes → Save**
+5. Скопируйте **Application (client) ID** → вставьте в
+   DuckMC → Аккаунты → Войти через Microsoft → поле client_id (сохранится в настройках)
+
+Без своего client_id вход невозможен ни в одном стороннем лаунчере — это не
+ограничение DuckMC, а политика Microsoft.
+
+## 2. ely.by / совместимые authserver'ы (в т.ч. собственные, напр. «eby.by»)
+
+ совместимые authserver'ы (в т.ч. ваш собственный, напр. «eby.by»)
 
 DuckMC говорит на протоколе **authserver**:
 

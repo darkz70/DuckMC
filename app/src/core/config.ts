@@ -24,10 +24,10 @@ export const DEFAULT_SETTINGS: Settings = {
     discordRpc: false,
   },
   accounts: {
-    // Совместимо с ely.by и любыми аналогами (например eby.by) — меняется в настройках
+    // Реальный вход Microsoft + совместимые authserver (ely.by и аналоги)
     authServerUrl: 'https://authserver.ely.by',
     microsoftClientId: '',
-    preferredProvider: 'offline',
+    preferredProvider: 'microsoft',
   },
   downloads: {
     installDir: '',
