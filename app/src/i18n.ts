@@ -36,13 +36,6 @@ const dict: Record<string, [ru: string, en: string]> = {
     'Кнопка «Установить из файла» работает с любым APK, который вы выберете сами — лаунчер не подсказывает и не хранит ссылки на сторонние сайты.',
     'The «Install from file» button works with any APK you choose yourself — the launcher does not suggest or store third-party site links.',
   ],
-  br_free_title: ['Бесплатно и навсегда (легально)', 'Free forever (legal)'],
-  br_free_text: [
-    'Luanti (бывший Minetest) — открытая игра-песочница в стиле Minecraft: выживание, крафт, миры типа MineClonia. Полностью бесплатна, без рекламы и без интернета для запуска, исходники открыты — её можно распространять кому угодно.',
-    'Luanti (formerly Minetest) is an open-source Minecraft-style sandbox: survival, crafting, MineClonia worlds. Completely free, no ads, playable offline, open source — legal to distribute.',
-  ],
-  br_free_get: ['Скачать Luanti (F-Droid)', 'Get Luanti (F-Droid)'],
-  br_free_site: ['Сайт luanti.org', 'luanti.org website'],
   br_own_note: [
     'Купленная Bedrock не «временная»: она навсегда привязывается к вашему Google-аккаунту и ставится на любое устройство в любой момент. Пробная версия — лишь демо для знакомства.',
     'Purchased Bedrock is not temporary: it is forever tied to your Google account and can be installed on any device anytime. The trial is just a demo.',
