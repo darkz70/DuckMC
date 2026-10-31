@@ -1,0 +1,66 @@
+# DuckMC — автосборка Android APK на GitHub Actions.
+#
+# Настройка (один раз):
+#   Settings → Secrets and variables → Actions → New repository secret
+#     Name:  VITE_MS_CLIENT_ID
+#     Value: ваш Azure Application (client) ID
+#   Секрет скрыт в логах и не попадает в репозиторий — он только вшивается
+#   в собираемый APK.
+#
+# Запуск: вкладка Actions → «DuckMC Android APK» → Run workflow
+# Готовый файл: артефакт DuckMC-debug.apk на странице запуска.
+
+name: DuckMC Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Web build (client_id из секрета вшивается здесь)
+        working-directory: app
+        env:
+          VITE_MS_CLIENT_ID: ${{ secrets.VITE_MS_CLIENT_ID }}
+        run: |
+          npm ci --no-audit --no-fund
+          if [ -n "$VITE_MS_CLIENT_ID" ]; then
+            printf 'VITE_MS_CLIENT_ID=%s\n' "$VITE_MS_CLIENT_ID" > .env
+            echo "client_id из секрета вшит в сборку"
+          else
+            echo "Секрет VITE_MS_CLIENT_ID не задан — вход Microsoft будет требовать ручного ввода ID"
+          fi
+          npm run build
+          npx cap sync android
+
+      - name: Android build
+        working-directory: app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DuckMC-debug-apk
+          path: app/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
