@@ -3,6 +3,14 @@ import { useState } from 'react';
 import type { Settings } from '../core/types';
 import type { T } from '../i18n';
 import { DEFAULT_SETTINGS } from '../core/config';
+import {
+  IconDownload,
+  IconGamepad,
+  IconInfo,
+  IconKey,
+  IconRefresh,
+  PlatformIcon,
+} from '../components/icons';
 
 interface Props {
   t: T;
@@ -26,22 +34,26 @@ export default function SettingsView(p: Props) {
 
   return (
     <>
-      <h1 className="view-title">⚙️ {t('settings_title')}</h1>
+      <h1 className="view-title">
+        <IconGamepad size={26} />
+        <span>{t('settings_title')}</span>
+      </h1>
       <p className="view-sub">DuckMC 0.1.0 · всё сохраняется на устройстве</p>
 
       <div className="set-grid">
         <div className="set-nav">
           {(
             [
-              ['game', '🎮 ' + t('set_game')],
-              ['launcher', '🦆 ' + t('set_launcher')],
-              ['auth', '🔑 ' + t('set_auth')],
-              ['downloads', '⬇️ ' + t('set_downloads')],
-              ['about', 'ℹ️ ' + t('set_about')],
-            ] as [Section, string][]
-          ).map(([id, label]) => (
+              ['game', IconGamepad, t('set_game')],
+              ['launcher', 'logo', t('set_launcher')],
+              ['auth', IconKey, t('set_auth')],
+              ['downloads', IconDownload, t('set_downloads')],
+              ['about', IconInfo, t('set_about')],
+            ] as [Section, typeof IconGamepad | 'logo', string][]
+          ).map(([id, Ico, label]) => (
             <button key={id} className={'nav-item' + (sec === id ? ' active' : '')} onClick={() => setSec(id)}>
-              {label}
+              {Ico === 'logo' ? <img src="./logo.jpg" alt="" className="mini-logo" /> : <Ico size={17} />}
+              <span>{label}</span>
             </button>
           ))}
         </div>
@@ -49,9 +61,9 @@ export default function SettingsView(p: Props) {
         <div>
           {sec === 'game' && (
             <div className="card">
-              <h3>🎮 {t('set_game')}</h3>
+              <h3><IconGamepad size={18} /> {t('set_game')}</h3>
               <div className="field">
-                <label>🧠 {t('memory_mb')}: <b>{s.game.memoryMb}</b></label>
+                <label>{t('memory_mb')}: <b>{s.game.memoryMb}</b></label>
                 <input
                   type="range"
                   min={1024}
@@ -62,7 +74,7 @@ export default function SettingsView(p: Props) {
                 />
               </div>
               <div className="field">
-                <label>📐 {t('resolution')}</label>
+                <label>{t('resolution')}</label>
                 <div className="row">
                   <input
                     style={{ width: 110 }}
@@ -88,7 +100,7 @@ export default function SettingsView(p: Props) {
                 </div>
               </div>
               <div className="field">
-                <label>☕ {t('java_path')}</label>
+                <label>{t('java_path')}</label>
                 <input
                   type="text"
                   placeholder="/usr/bin/java или C:\Program Files\Java\bin\javaw.exe"
@@ -98,7 +110,7 @@ export default function SettingsView(p: Props) {
                 <span className="hint">{t('java_path_hint')}</span>
               </div>
               <div className="field">
-                <label>🧾 {t('jvm_args')}</label>
+                <label>{t('jvm_args')}</label>
                 <input
                   type="text"
                   placeholder="-XX:+UseG1GC -Dsun.java2d.opengl=true"
@@ -107,7 +119,7 @@ export default function SettingsView(p: Props) {
                 />
               </div>
               <div className="field">
-                <label>📁 {t('game_dir')}</label>
+                <label>{t('game_dir')}</label>
                 <input
                   type="text"
                   placeholder="(авто: ~/DuckMC/games)"
@@ -116,13 +128,13 @@ export default function SettingsView(p: Props) {
                 />
               </div>
               <div className="field">
-                <label>🎯 {t('default_edition')}</label>
+                <label>{t('default_edition')}</label>
                 <select
                   value={s.game.defaultEdition}
                   onChange={(e) => patch((d) => (d.game.defaultEdition = e.target.value as Settings['game']['defaultEdition']))}
                 >
-                  <option value="java">☕ {t('edition_java')}</option>
-                  <option value="bedrock">📱 {t('edition_bedrock')}</option>
+                  <option value="java">{t('edition_java')}</option>
+                  <option value="bedrock">{t('edition_bedrock')}</option>
                 </select>
               </div>
             </div>
@@ -130,25 +142,25 @@ export default function SettingsView(p: Props) {
 
           {sec === 'launcher' && (
             <div className="card">
-              <h3>🦆 {t('set_launcher')}</h3>
+              <h3><img src="./logo.jpg" alt="" className="mini-logo" /> {t('set_launcher')}</h3>
               <div className="field">
-                <label>🌍 {t('language')}</label>
+                <label>{t('language')}</label>
                 <select
                   value={s.launcher.language}
                   onChange={(e) => patch((d) => (d.launcher.language = e.target.value as Settings['launcher']['language']))}
                 >
-                  <option value="ru">🇷🇺 Русский</option>
-                  <option value="en">🇬🇧 English</option>
+                  <option value="ru">Русский</option>
+                  <option value="en">English</option>
                 </select>
               </div>
               <div className="field">
-                <label>🎨 {t('theme')}</label>
+                <label>{t('theme')}</label>
                 <select
                   value={s.launcher.theme}
                   onChange={(e) => patch((d) => (d.launcher.theme = e.target.value as Settings['launcher']['theme']))}
                 >
-                  <option value="light">☀️ {t('theme_light')}</option>
-                  <option value="dark">🌙 {t('theme_dark')}</option>
+                  <option value="light">{t('theme_light')}</option>
+                  <option value="dark">{t('theme_dark')}</option>
                 </select>
               </div>
               <label className="check-row">
@@ -180,9 +192,9 @@ export default function SettingsView(p: Props) {
 
           {sec === 'auth' && (
             <div className="card">
-              <h3>🔑 {t('set_auth')}</h3>
+              <h3><IconKey size={18} /> {t('set_auth')}</h3>
               <div className="field">
-                <label>🌐 {t('auth_server_url')}</label>
+                <label>{t('auth_server_url')}</label>
                 <input
                   type="text"
                   value={s.accounts.authServerUrl}
@@ -193,7 +205,7 @@ export default function SettingsView(p: Props) {
                 </span>
               </div>
               <div className="field">
-                <label>🪟 {t('ms_client_id')}</label>
+                <label>{t('ms_client_id')}</label>
                 <input
                   type="text"
                   placeholder="00000000-0000-0000-0000-000000000000"
@@ -203,14 +215,14 @@ export default function SettingsView(p: Props) {
                 <span className="hint">{t('ms_client_hint')}</span>
               </div>
               <div className="field">
-                <label>⭐ {t('preferred_provider')}</label>
+                <label>{t('preferred_provider')}</label>
                 <select
                   value={s.accounts.preferredProvider}
                   onChange={(e) => patch((d) => (d.accounts.preferredProvider = e.target.value as Settings['accounts']['preferredProvider']))}
                 >
-                  <option value="offline">🎮 {t('provider_offline')}</option>
-                  <option value="elyby">🌐 {t('provider_elyby')}</option>
-                  <option value="microsoft">🪟 {t('provider_microsoft')}</option>
+                  <option value="offline">{t('provider_offline')}</option>
+                  <option value="elyby">{t('provider_elyby')}</option>
+                  <option value="microsoft">{t('provider_microsoft')}</option>
                 </select>
               </div>
             </div>
@@ -218,9 +230,9 @@ export default function SettingsView(p: Props) {
 
           {sec === 'downloads' && (
             <div className="card">
-              <h3>⬇️ {t('set_downloads')}</h3>
+              <h3><IconDownload size={18} /> {t('set_downloads')}</h3>
               <div className="field">
-                <label>📁 {t('install_dir')}</label>
+                <label>{t('install_dir')}</label>
                 <input
                   type="text"
                   placeholder="(авто: ~/DuckMC/versions)"
@@ -234,7 +246,7 @@ export default function SettingsView(p: Props) {
                   checked={s.downloads.verifyFiles}
                   onChange={(e) => patch((d) => (d.downloads.verifyFiles = e.target.checked))}
                 />
-                🧪 {t('verify_files')}
+                {t('verify_files')}
               </label>
               <label className="check-row">
                 <input
@@ -242,31 +254,43 @@ export default function SettingsView(p: Props) {
                   checked={s.downloads.torrentMirror}
                   onChange={(e) => patch((d) => (d.downloads.torrentMirror = e.target.checked))}
                 />
-                🌊 Зеркало для медленных соединений (план)
+                Зеркало для медленных соединений (план)
               </label>
             </div>
           )}
 
           {sec === 'about' && (
             <div className="card">
-              <h3>ℹ️ {t('set_about')}</h3>
+              <h3><IconInfo size={18} /> {t('set_about')}</h3>
               <div className="row" style={{ gap: 18 }}>
                 <img src="./logo.jpg" alt="DuckMC" style={{ width: 96, height: 96, borderRadius: 20, border: '1px solid var(--input-border)' }} />
                 <div>
                   <p style={{ fontWeight: 900, fontSize: 22, margin: 0 }}>DuckMC 0.1.0 «Quack»</p>
                   <p className="hint">
-                    {t('about_license')} · Логотип: IMG_20261031_130628_458.jpg
+                    {t('about_license')}
                     <br />
                     Кроссплатформенный лаунчер Minecraft: Java + Bedrock.
-                    <br />
-                    Платформы: 🤖 Android (приоритет) · 🍎 iOS · 🪟 Windows · 🐧 Linux · 💻 macOS
                   </p>
-                  <p className="hint">🗂 {t('about_roadmap')}: <code>docs/ROADMAP.md</code></p>
+                  <div className="platform-icons-row" aria-label="Платформы">
+                    <PlatformIcon platform="android" size={20} />
+                    <PlatformIcon platform="ios" size={20} />
+                    <PlatformIcon platform="windows" size={20} />
+                    <PlatformIcon platform="linux" size={20} />
+                    <PlatformIcon platform="macos" size={20} />
+                  </div>
+                  <p className="hint" style={{ marginTop: 10 }}>{t('about_roadmap')}: <code>docs/ROADMAP.md</code></p>
                 </div>
               </div>
               <div className="row" style={{ marginTop: 14 }}>
-                <button className="btn danger" onClick={() => { p.setSettings(structuredClone(DEFAULT_SETTINGS)); p.toast('♻️ ' + t('done')); }}>
-                  {t('reset')}
+                <button
+                  className="btn danger"
+                  onClick={() => {
+                    p.setSettings(structuredClone(DEFAULT_SETTINGS));
+                    p.toast(t('done'));
+                  }}
+                >
+                  <IconRefresh size={15} />
+                  <span>{t('reset')}</span>
                 </button>
               </div>
             </div>

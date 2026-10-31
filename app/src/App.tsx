@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Account, Edition, LaunchProgress, Settings, VersionInfo } from './core/types';
 import { loadAccounts, loadSettings, saveAccounts, saveSettings } from './core/config';
-import { detectPlatform, platformIcon, platformLabel, webAdapter } from './core/platform';
+import { detectPlatform, platformLabel, webAdapter } from './core/platform';
 import { LaunchController } from './core/launch';
 import { FALLBACK_JAVA_VERSIONS, fetchJavaManifest } from './core/versions';
 import { makeT } from './i18n';
@@ -11,6 +11,7 @@ import DownloadsView from './views/DownloadsView';
 import AccountsView from './views/AccountsView';
 import SettingsView from './views/SettingsView';
 import { Toast } from './components/ui';
+import { IconHome, IconDownload, IconMenu, IconUser, IconSliders, PlatformIcon } from './components/icons';
 import Splash from './components/Splash';
 
 type View = 'home' | 'downloads' | 'accounts' | 'settings';
@@ -78,7 +79,7 @@ export default function App() {
         onProgress: (pr) => setLaunch((old) => ({ ...old, progress: pr })),
         onDone: (ok, msg) => {
           setLaunch({ running: false, progress: null });
-          toast(ok ? '🎉 ' + msg : '⚠️ ' + msg, !ok);
+          toast(msg, !ok);
         },
       },
     );
@@ -88,11 +89,11 @@ export default function App() {
     controllerRef.current?.cancel();
   }, []);
 
-  const navItems: [View, string, string][] = [
-    ['home', '🏠', t('nav_home')],
-    ['downloads', '⬇️', t('nav_downloads')],
-    ['accounts', '👤', t('nav_accounts')],
-    ['settings', '⚙️', t('nav_settings')],
+  const navItems: [View, typeof IconHome, string][] = [
+    ['home', IconHome, t('nav_home')],
+    ['downloads', IconDownload, t('nav_downloads')],
+    ['accounts', IconUser, t('nav_accounts')],
+    ['settings', IconSliders, t('nav_settings')],
   ];
 
   const go = (v: View) => {
@@ -109,17 +110,19 @@ export default function App() {
             <span className="logo-text">DuckMC</span>
           </button>
           <div className={'nav-links' + (menuOpen ? ' open' : '')}>
-            {navItems.map(([id, ico, label]) => (
+            {navItems.map(([id, Ico, label]) => (
               <button key={id} className={'nav-link' + (view === id ? ' active' : '')} onClick={() => go(id)}>
-                {ico} {label}
+                <Ico size={17} />
+                <span>{label}</span>
               </button>
             ))}
             <span className="nav-chip">
-              {platformIcon(platform)} {platformLabel(platform)} · v0.1.0
+              <PlatformIcon platform={platform} size={15} />
+              <span>{platformLabel(platform)} · v0.1.0</span>
             </span>
           </div>
           <button className="nav-toggle" onClick={() => setMenuOpen((o) => !o)} aria-label="Меню">
-            ☰
+            <IconMenu size={22} />
           </button>
         </div>
       </nav>

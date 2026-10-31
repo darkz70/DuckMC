@@ -3,7 +3,16 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Settings, VersionInfo, VersionType } from '../core/types';
 import type { T } from '../i18n';
 import { fetchJavaManifest, BEDROCK_SOURCES, type ManifestResult } from '../core/versions';
-import { ProgressBar, Toast } from '../components/ui';
+import { ProgressBar } from '../components/ui';
+import {
+  IconBedrock,
+  IconCalendar,
+  IconCheck,
+  IconDownload,
+  IconExternal,
+  IconJava,
+  IconLock,
+} from '../components/icons';
 
 type Filter = 'all' | 'release' | 'snapshot' | 'old';
 
@@ -69,17 +78,22 @@ export default function DownloadsView(p: Props) {
 
   return (
     <>
-      <h1 className="view-title">⬇️ {t('downloads_title')}</h1>
+      <h1 className="view-title">
+        <IconDownload size={26} />
+        <span>{t('downloads_title')}</span>
+      </h1>
       <p className="view-sub">
-        {manifest?.source === 'live' ? `✅ ${t('source_live')}` : `📦 ${t('source_fallback')}`}
+        {manifest?.source === 'live' ? t('source_live') : t('source_fallback')}
       </p>
 
       <div className="edition-switch" style={{ marginBottom: 16 }}>
         <button className={tab === 'java' ? 'on' : ''} onClick={() => setTab('java')}>
-          ☕ {t('edition_java')}
+          <IconJava size={17} />
+          <span>{t('label_java')}</span>
         </button>
         <button className={tab === 'bedrock' ? 'on' : ''} onClick={() => setTab('bedrock')}>
-          📱 {t('edition_bedrock')}
+          <IconBedrock size={17} />
+          <span>{t('label_bedrock_short')}</span>
         </button>
       </div>
 
@@ -108,27 +122,28 @@ export default function DownloadsView(p: Props) {
                     <span className="id">{v.id}</span>
                     <span className={'badge ' + v.type}>{badgeName(v.type, t)}</span>
                   </div>
-                  <span className="date">📅 {v.releaseTime}</span>
+                  <span className="date with-ico"><IconCalendar size={13} /> {v.releaseTime}</span>
                   {isInstalled ? (
-                    <span className="badge installed">✔ {t('installed')}</span>
+                    <span className="badge installed with-ico"><IconCheck size={12} /> {t('installed')}</span>
                   ) : isInstalling ? (
                     <ProgressBar percent={installing.percent} detail={t('installing')} label={Math.round(installing.percent) + '%'} />
                   ) : (
                     <button className="btn primary small" onClick={() => simulateInstall(v)} disabled={!!installing}>
-                      ⬇ {t('install')}
+                      <IconDownload size={15} />
+                      <span>{t('install')}</span>
                     </button>
                   )}
                 </div>
               );
             })}
           </div>
-          {filtered.length === 0 && manifest && <p className="hint">Ничего не найдено 🦆</p>}
+          {filtered.length === 0 && manifest && <p className="hint">Ничего не найдено</p>}
         </>
       )}
 
       {tab === 'bedrock' && (
         <div className="card">
-          <h3>🔒 {t('bedrock_note_title')}</h3>
+          <h3><IconLock size={18} /> {t('bedrock_note_title')}</h3>
           <p className="hint">{t('bedrock_note')}</p>
           <div className="ver-list" style={{ marginTop: 12 }}>
             {BEDROCK_SOURCES.map((s) => (
@@ -137,7 +152,8 @@ export default function DownloadsView(p: Props) {
                   <span className="id">{s.name}</span>
                 </div>
                 <button className="btn diamond small" onClick={() => p.openExternal(s.url)}>
-                  ↗ Открыть магазин
+                  <IconExternal size={15} />
+                  <span>Открыть магазин</span>
                 </button>
               </div>
             ))}

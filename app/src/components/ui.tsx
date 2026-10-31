@@ -1,5 +1,6 @@
 // DuckMC — переиспользуемые UI-элементы
 import { ReactNode, useEffect } from 'react';
+import { IconAlert, IconCheckCircle } from './icons';
 
 export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   useEffect(() => {
@@ -10,7 +11,7 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
   return (
     <div className="modal-back" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" role="dialog" aria-modal="true">
-        <h3>🦆 {title}</h3>
+        <h3>{title}</h3>
         {children}
       </div>
     </div>
@@ -18,10 +19,15 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
 }
 
 export function Toast({ text, error }: { text: string; error?: boolean }) {
-  return <div className={'toast' + (error ? ' err' : '')}>{text}</div>;
+  return (
+    <div className={'toast' + (error ? ' err' : '')}>
+      {error ? <IconAlert size={18} /> : <IconCheckCircle size={18} />}
+      <span>{text}</span>
+    </div>
+  );
 }
 
-export function ProgressBar({ percent, label, detail }: { percent: number; label: string; detail: string }) {
+export function ProgressBar({ percent, label, detail }: { percent: number; label: string; detail: ReactNode }) {
   return (
     <div className="progress-wrap">
       <div className="progress-bar">

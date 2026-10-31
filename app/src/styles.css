@@ -667,3 +667,100 @@ input[type='range'] { accent-color: var(--accent); width: 100%; }
   .set-nav { position: static; flex-direction: row; flex-wrap: wrap; }
   .set-nav .nav-item { width: auto; }
 }
+
+/* ---------- Иконки и мелкие элементы (замена эмодзи) ---------- */
+
+.view-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.view-title svg { color: var(--accent); }
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-link svg { opacity: 0.85; }
+.nav-link.active svg { opacity: 1; }
+
+.nav-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-chip svg { color: var(--accent); }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card h3 svg, .card h3 .mini-logo { color: var(--accent); }
+
+.btn-play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.stat-ico { display: flex; align-items: center; gap: 10px; }
+.stat-ico svg { color: var(--accent); }
+
+.with-ico {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+p.hint.with-ico { display: flex; }
+p.hint.with-ico svg { color: var(--accent); flex-shrink: 0; margin-top: 3px; }
+
+.acc-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.acc-card .nick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.acc-card .nick svg { color: var(--accent); }
+
+.mini-logo {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  object-fit: cover;
+  display: block;
+  flex-shrink: 0;
+}
+
+.platform-icons-row {
+  display: flex;
+  gap: 14px;
+  margin-top: 12px;
+  color: var(--muted);
+}
+.platform-icons-row svg { color: var(--accent); opacity: 0.9; }
+
+.floating-icon { color: var(--accent); }
+.floating-icon svg { display: block; margin: 0 auto; }
+
+/* Спиннер запуска */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(5, 46, 21, 0.25);
+  border-top-color: #052e15;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

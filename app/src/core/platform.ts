@@ -32,17 +32,6 @@ export function platformLabel(p: PlatformId): string {
   }
 }
 
-export function platformIcon(p: PlatformId): string {
-  switch (p) {
-    case 'android': return '🤖';
-    case 'ios': return '🍎';
-    case 'windows': return '🪟';
-    case 'macos': return '💻';
-    case 'linux': return '🐧';
-    default: return '🌐';
-  }
-}
-
 /** Демо-адаптер: всё, что требует реального доступа к ОС, помечаем как недоступное */
 export const webAdapter: PlatformAdapter = {
   id: 'web',

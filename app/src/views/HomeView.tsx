@@ -1,9 +1,25 @@
 // DuckMC — главная: герой + запуск игры (стиль duckmcweb.vercel.app)
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import type { Account, Edition, LaunchProgress, Settings, VersionInfo } from '../core/types';
 import type { T } from '../i18n';
-import { platformIcon, platformLabel, detectPlatform } from '../core/platform';
+import { detectPlatform, platformLabel } from '../core/platform';
 import { ProgressBar } from '../components/ui';
+import {
+  IconBedrock,
+  IconCheckCircle,
+  IconCompass,
+  IconDownload,
+  IconFlask,
+  IconJava,
+  IconKey,
+  IconPlay,
+  IconPlus,
+  IconUser,
+  IconX,
+  IconZap,
+  IconAlert,
+  PlatformIcon,
+} from '../components/icons';
 
 interface Props {
   t: T;
@@ -31,18 +47,17 @@ export default function HomeView(p: Props) {
 
   const installedCount = p.settings.installedJava.length;
 
-  const phaseIcon = (phase: string): string => {
+  const phaseIcon = (phase: string): ReactNode => {
     switch (phase) {
-      case 'preparing': return '🧭';
-      case 'account': return '🔑';
-      case 'downloading': return '⬇️';
-      case 'verifying': return '🧪';
-      case 'jvm': return '☕';
-      case 'running': return '🚀';
-      case 'done': return '✅';
-      case 'error': return '💥';
-      case 'cancelled': return '✋';
-      default: return '🦆';
+      case 'preparing': return <IconCompass size={15} />;
+      case 'account': return <IconKey size={15} />;
+      case 'downloading': return <IconDownload size={15} />;
+      case 'verifying': return <IconFlask size={15} />;
+      case 'jvm': return <IconJava size={15} />;
+      case 'running': return <IconZap size={15} />;
+      case 'done': return <IconCheckCircle size={15} />;
+      case 'error': return <IconAlert size={15} />;
+      default: return <IconDownload size={15} />;
     }
   };
 
@@ -62,10 +77,12 @@ export default function HomeView(p: Props) {
 
             <div className="edition-switch">
               <button className={'chip' + (p.edition === 'java' ? ' on' : '')} onClick={() => p.setEdition('java')}>
-                ☕ {t('label_java')}
+                <IconJava size={17} />
+                <span>{t('label_java')}</span>
               </button>
               <button className={'chip' + (p.edition === 'bedrock' ? ' on' : '')} onClick={() => p.setEdition('bedrock')}>
-                📱 {t('label_bedrock_short')}
+                <IconBedrock size={17} />
+                <span>{t('label_bedrock_short')}</span>
               </button>
             </div>
 
@@ -97,11 +114,22 @@ export default function HomeView(p: Props) {
                 onClick={p.launchState.running ? undefined : p.onPlay}
                 disabled={p.launchState.running}
               >
-                {p.launchState.running ? '🦆 ' + t('playing') : '▶ ' + t('play')}
+                {p.launchState.running ? (
+                  <>
+                    <span className="spinner" aria-hidden="true" />
+                    <span>{t('playing')}</span>
+                  </>
+                ) : (
+                  <>
+                    <IconPlay size={20} />
+                    <span>{t('play')}</span>
+                  </>
+                )}
               </button>
               {p.launchState.running && (
                 <button className="btn danger" onClick={p.onCancel}>
-                  ✖ {t('cancel')}
+                  <IconX size={16} />
+                  <span>{t('cancel')}</span>
                 </button>
               )}
             </div>
@@ -109,7 +137,12 @@ export default function HomeView(p: Props) {
             {progress && (
               <ProgressBar
                 percent={progress.percent}
-                detail={phaseIcon(progress.phase) + ' ' + progress.detail}
+                detail={
+                  <>
+                    {phaseIcon(progress.phase)}
+                    <span>{progress.detail}</span>
+                  </>
+                }
                 label={progress.phase === 'done' ? t('done') : progress.percent + '%'}
               />
             )}
@@ -117,11 +150,15 @@ export default function HomeView(p: Props) {
             <div className="acc-hint">
               {active ? (
                 <>
-                  👤 <b>{active.nickname}</b> · {active.provider === 'microsoft' ? 'Microsoft' : active.provider === 'elyby' ? 'ely.by' : t('provider_offline')}
+                  <IconUser size={16} />
+                  <span>
+                    <b>{active.nickname}</b> · {active.provider === 'microsoft' ? 'Microsoft' : active.provider === 'elyby' ? 'ely.by' : t('provider_offline')}
+                  </span>
                 </>
               ) : (
                 <button className="btn small outline" onClick={p.goAccounts}>
-                  ➕ {t('add_account')}
+                  <IconPlus size={15} />
+                  <span>{t('add_account')}</span>
                 </button>
               )}
             </div>
@@ -133,11 +170,11 @@ export default function HomeView(p: Props) {
               <div className="floating-label">DuckMC</div>
             </div>
             <div className="floating-card floating-card-2">
-              <div className="floating-icon">⛏️</div>
+              <div className="floating-icon"><IconJava size={40} /></div>
               <div className="floating-label">{t('label_java')}</div>
             </div>
             <div className="floating-card floating-card-3">
-              <div className="floating-icon">📱</div>
+              <div className="floating-icon"><IconBedrock size={40} /></div>
               <div className="floating-label">{t('label_bedrock_short')}</div>
             </div>
           </div>
@@ -148,11 +185,11 @@ export default function HomeView(p: Props) {
       <section style={{ marginTop: 40 }}>
         <h2 className="view-title" style={{ fontSize: '1.4rem' }}>{t('quick_stats')}</h2>
         <p className="view-sub">
-          {t('your_platform')}: {platformIcon(platform)} {platformLabel(platform)}
+          {t('your_platform')}: {platformLabel(platform)}
         </p>
         <div className="stat-grid">
           <div className="stat">
-            <div className="v">{platformIcon(platform)} {platformLabel(platform)}</div>
+            <div className="v stat-ico"><PlatformIcon platform={platform} size={22} /><span>{platformLabel(platform)}</span></div>
             <div className="k">{t('your_platform')}</div>
           </div>
           <div className="stat">
@@ -169,8 +206,9 @@ export default function HomeView(p: Props) {
           </div>
         </div>
         {platform !== 'android' && (
-          <p className="hint" style={{ marginTop: 14 }}>
-            🤖 {t('android_first')} — приоритетная платформа: сначала доводим до ума Android (Capacitor/PWA), затем iOS и десктопы.
+          <p className="hint with-ico" style={{ marginTop: 14 }}>
+            <PlatformIcon platform="android" size={16} />
+            <span>{t('android_first')} — приоритетная платформа: сначала доводим до ума Android (Capacitor/PWA), затем iOS и десктопы.</span>
           </p>
         )}
       </section>

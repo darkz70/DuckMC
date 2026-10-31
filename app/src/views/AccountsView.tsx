@@ -13,6 +13,7 @@ import {
   type DeviceCodeInfo,
 } from '../core/auth';
 import { Modal } from '../components/ui';
+import { IconGamepad, IconGlobe, IconPlus, IconStar, IconTrash, IconUser, IconWindows } from '../components/icons';
 
 interface Props {
   t: T;
@@ -42,7 +43,10 @@ export default function AccountsView(p: Props) {
 
   return (
     <>
-      <h1 className="view-title">👤 {t('accounts_title')}</h1>
+      <h1 className="view-title">
+        <IconUser size={26} />
+        <span>{t('accounts_title')}</span>
+      </h1>
       <p className="view-sub">Microsoft · ely.by / совместимые (URL настраивается) · Оффлайн</p>
 
       {p.accounts.length === 0 && (
@@ -56,7 +60,10 @@ export default function AccountsView(p: Props) {
           <div key={a.id} className={'acc-card' + (a.active ? ' active-acc' : '')}>
             <img src={avatarUrl(a)} alt="" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />
             <div className="info">
-              <div className="nick">{a.active ? '★ ' : ''}{a.nickname}</div>
+              <div className="nick">
+                {a.active && <IconStar size={13} />}
+                <span>{a.nickname}</span>
+              </div>
               <div className="prov">{providerLabel(a.provider)} · {a.uuid.slice(0, 8)}…</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -65,8 +72,8 @@ export default function AccountsView(p: Props) {
                   {t('make_active')}
                 </button>
               )}
-              <button className="btn small danger" onClick={() => remove(a.id)}>
-                🗑
+              <button className="btn small danger" onClick={() => remove(a.id)} aria-label="Удалить">
+                <IconTrash size={16} />
               </button>
             </div>
           </div>
@@ -74,7 +81,8 @@ export default function AccountsView(p: Props) {
       </div>
 
       <button className="btn primary" style={{ marginTop: 16 }} onClick={() => setAdding(true)}>
-        ➕ {t('add_account')}
+        <IconPlus size={16} />
+        <span>{t('add_account')}</span>
       </button>
 
       {adding && (
@@ -89,7 +97,7 @@ export default function AccountsView(p: Props) {
             acc.active = true;
             p.onSaveAccounts([...rest, acc]);
             setAdding(false);
-            p.toast(`✅ ${acc.nickname} — ${providerLabel(acc.provider)}`);
+            p.toast(`${acc.nickname} — ${providerLabel(acc.provider)}`);
           }}
           toast={p.toast}
         />
@@ -196,13 +204,16 @@ function AddAccountModal(props: {
     <Modal title={t('add_account')} onClose={props.onClose}>
       <div className="provider-tabs">
         <button className={'chip' + (props.prov === 'microsoft' ? ' on' : '')} onClick={() => setProv0('microsoft')}>
-          🪟 {t('provider_microsoft')}
+          <IconWindows size={16} />
+          <span>{t('provider_microsoft')}</span>
         </button>
         <button className={'chip' + (props.prov === 'elyby' ? ' on' : '')} onClick={() => setProv0('elyby')}>
-          🌐 {t('provider_elyby')}
+          <IconGlobe size={16} />
+          <span>{t('provider_elyby')}</span>
         </button>
         <button className={'chip' + (props.prov === 'offline' ? ' on' : '')} onClick={() => setProv0('offline')}>
-          🎮 {t('provider_offline')}
+          <IconGamepad size={16} />
+          <span>{t('provider_offline')}</span>
         </button>
       </div>
 
@@ -225,7 +236,7 @@ function AddAccountModal(props: {
             <label>{t('auth_server_url')}</label>
             <input value={props.settings.accounts.authServerUrl} readOnly />
             <span className="hint">
-              ℹ️ Работает с ely.by и любыми совместимыми authserver-системами. Свой адрес указывается в Настройки → Авторизация.
+              Работает с ely.by и любыми совместимыми authserver-системами. Свой адрес указывается в Настройки → Авторизация.
             </span>
           </div>
           <div className="field">
@@ -256,7 +267,7 @@ function AddAccountModal(props: {
                 {device.userCode}
               </p>
               <p className="hint">
-                → <a href={device.verificationUri} target="_blank" rel="noopener noreferrer">{device.verificationUri}</a>
+                <a href={device.verificationUri} target="_blank" rel="noopener noreferrer">{device.verificationUri}</a>
               </p>
               <p className="hint">⏳ {t('ms_waiting')}</p>
             </>
@@ -267,10 +278,11 @@ function AddAccountModal(props: {
                 <input value={props.settings.accounts.microsoftClientId} readOnly />
                 <span className="hint">{t('ms_client_hint')}</span>
               </div>
-              {msError && <p className="hint" style={{ color: 'var(--danger)' }}>⚠️ {msError}</p>}
+              {msError && <p className="hint" style={{ color: 'var(--danger)' }}>{msError}</p>}
               <div className="row">
                 <button className="btn primary" onClick={() => submitMicrosoft(false)} disabled={busy}>
-                  🪟 {t('login')}
+                  <IconWindows size={16} />
+                  <span>{t('login')}</span>
                 </button>
                 <button className="btn" onClick={() => submitMicrosoft(true)} disabled={busy}>
                   {t('demo_login')}
