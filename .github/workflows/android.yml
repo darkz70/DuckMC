@@ -31,11 +31,11 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
 
-      - name: JDK 17
+      - name: JDK 21 (требование Capacitor 8)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
 
       - name: Web build (client_id из секрета вшивается здесь)
         working-directory: app
