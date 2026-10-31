@@ -355,21 +355,7 @@ export default function DownloadsView(p: Props) {
                 <IconExternal size={16} />
                 <span>{t('br_install_store')}</span>
               </button>
-              <button
-                className="btn"
-                onClick={() => {
-                  if (isNative()) {
-                    DuckMCNative.openStore({ pkg: 'com.mojang.minecrafttrialpe' }).catch(() =>
-                      p.openExternal('https://play.google.com/store/apps/details?id=com.mojang.minecrafttrialpe'),
-                    );
-                  } else {
-                    p.openExternal('https://play.google.com/store/apps/details?id=com.mojang.minecrafttrialpe');
-                  }
-                }}
-              >
-                <IconPlay size={16} />
-                <span>{t('br_trial')}</span>
-              </button>
+
               {isNative() && (
                 <>
                   <button
