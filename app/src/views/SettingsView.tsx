@@ -253,7 +253,7 @@ export default function SettingsView(p: Props) {
             <div className="card">
               <h3><IconInfo size={18} /> {t('set_about')}</h3>
               <div className="row" style={{ gap: 18 }}>
-                <img src="./logo.jpg" alt="DuckMC" style={{ width: 96, height: 96, borderRadius: 20, border: '1px solid var(--input-border)' }} />
+                <img src="./logo.jpg" alt="DuckMC" width={96} height={96} style={{ borderRadius: 20, border: '1px solid var(--input-border)' }} />
                 <div>
                   <p style={{ fontWeight: 900, fontSize: 22, margin: 0 }}>DuckMC 0.1.0 «Quack»</p>
                   <p className="hint">

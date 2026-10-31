@@ -16,7 +16,7 @@ export default function Splash() {
   if (phase === 'gone') return null;
   return (
     <div className={'splash' + (phase === 'fade' ? ' splash-fade' : '')} onClick={() => setPhase('fade')}>
-      <img src="./logo.jpg" alt="DuckMC" className="splash-logo" />
+      <img src="./logo.jpg" alt="DuckMC" className="splash-logo" width={120} height={120} />
       <div className="splash-name">DuckMC</div>
       <div className="splash-quack">кря-кря!</div>
     </div>

@@ -105,7 +105,7 @@ export default function App() {
       <nav className="navbar">
         <div className="container nav-inner">
           <button className="logo" onClick={() => go('home')} aria-label="DuckMC">
-            <img src="./logo.jpg" alt="DuckMC" className="logo-img" />
+            <img src="./logo.jpg" alt="DuckMC" className="logo-img" width={32} height={32} />
             <span className="logo-text">DuckMC</span>
           </button>
           <div className={'nav-links' + (menuOpen ? ' open' : '')}>
