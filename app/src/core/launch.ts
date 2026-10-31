@@ -63,13 +63,9 @@ export class LaunchController {
       const steps: [number, string][] = [
         [20, 'Загружаем манифест версии…'],
         [32, 'Скачиваем клиент и библиотеки…'],
-        [46, 'Скачиваем ассеты (звуки, текстуры индексы)…'],
+        [46, 'Скачиваем ассеты (звуки, индексы текстур)…'],
         [58, 'Докачиваем нативные библиотеки…'],
       ];
-      if (opts.edition === 'bedrock') {
-        steps[0] = [20, 'Проверяем установленный Bedrock-пакет…'];
-        steps[1] = [32, 'Сверяем версию с официальным источником…'];
-      }
       for (const [pct, msg] of steps) {
         P('downloading', pct, msg);
         await sleep(650);
@@ -84,7 +80,7 @@ export class LaunchController {
       }
 
       // 4. JVM / окружение
-      P('jvm', 78, opts.edition === 'java' ? 'Настраиваем Java-машину…' : 'Готовим окружение Bedrock…');
+      P('jvm', 78, 'Настраиваем Java-машину…');
       await sleep(600);
       if (this.cancelled) return this.finish(cb, false, 'Запуск отменён');
 

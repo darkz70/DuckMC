@@ -1,11 +1,11 @@
 // DuckMC — главная: герой + запуск игры (стиль duckmcweb.vercel.app)
 import { useMemo } from 'react';
-import type { Account, Edition, LaunchProgress, Settings, VersionInfo } from '../core/types';
+import type { Account, LaunchProgress, Settings, VersionInfo } from '../core/types';
 import type { T } from '../i18n';
 import { ProgressBar } from '../components/ui';
-import EditionCards from '../components/EditionCards';
 import {
-  IconBedrock,
+  IconAlert,
+  IconAndroid,
   IconCheckCircle,
   IconCompass,
   IconDownload,
@@ -17,15 +17,12 @@ import {
   IconUser,
   IconX,
   IconZap,
-  IconAlert,
 } from '../components/icons';
 
 interface Props {
   t: T;
   settings: Settings;
   accounts: Account[];
-  edition: Edition;
-  setEdition: (e: Edition) => void;
   javaVersions: VersionInfo[];
   launchState: { running: boolean; progress: LaunchProgress | null };
   onPlay: () => void;
@@ -33,14 +30,13 @@ interface Props {
   goAccounts: () => void;
   goDownloads: () => void;
   setVersionJava: (v: string) => void;
-  setVersionBedrock: (v: string) => void;
 }
 
 export default function HomeView(p: Props) {
   const t = p.t;
   const active = p.accounts.find((a) => a.active) ?? null;
-  const versions = p.edition === 'java' ? p.javaVersions.filter((v) => v.type === 'release') : [];
-  const selVersion = p.edition === 'java' ? p.settings.game.defaultVersionJava : p.settings.game.defaultVersionBedrock;
+  const versions = p.javaVersions.filter((v) => v.type === 'release');
+  const selVersion = p.settings.game.defaultVersionJava;
   const progress = p.launchState.progress;
 
   const phaseIcon = (phase: string) => {
@@ -69,42 +65,25 @@ export default function HomeView(p: Props) {
           </h1>
           <p className="lead">{t('hero_lead')}</p>
 
-          <div className="edition-switch">
-            <button className={'chip' + (p.edition === 'java' ? ' on' : '')} onClick={() => p.setEdition('java')}>
-              <IconJava size={17} />
-              <span>{t('label_java')}</span>
-            </button>
-            <button className={'chip' + (p.edition === 'bedrock' ? ' on' : '')} onClick={() => p.setEdition('bedrock')}>
-              <IconBedrock size={17} />
-              <span>{t('label_bedrock_short')}</span>
-            </button>
-          </div>
-
           <div className="launch-row">
-            {p.edition === 'java' ? (
-              <select
-                className="duck-select"
-                value={selVersion}
-                disabled={p.launchState.running}
-                onChange={(e) => p.setVersionJava(e.target.value)}
-              >
-                {versions.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.id}
-                  </option>
-                ))}
-                {!versions.find((v) => v.id === selVersion) && selVersion && (
-                  <option value={selVersion}>{selVersion}</option>
-                )}
-              </select>
-            ) : (
-              <select className="duck-select" value={selVersion} disabled>
-                <option value="latest">{t('edition_bedrock')}: latest</option>
-              </select>
-            )}
+            <select
+              className="duck-select"
+              value={selVersion}
+              disabled={p.launchState.running}
+              onChange={(e) => p.setVersionJava(e.target.value)}
+            >
+              {versions.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.id}
+                </option>
+              ))}
+              {!versions.find((v) => v.id === selVersion) && selVersion && (
+                <option value={selVersion}>{selVersion}</option>
+              )}
+            </select>
 
             <button
-              className={'btn-play' + (p.edition === 'bedrock' ? ' bedrock' : '') + (p.launchState.running ? ' busy' : '')}
+              className={'btn-play' + (p.launchState.running ? ' busy' : '')}
               onClick={p.launchState.running ? undefined : p.onPlay}
               disabled={p.launchState.running}
             >
@@ -165,11 +144,11 @@ export default function HomeView(p: Props) {
           </div>
           <div className="floating-card floating-card-2">
             <div className="floating-icon"><IconJava size={40} /></div>
-            <div className="floating-label">{t('label_java')}</div>
+            <div className="floating-label">Java</div>
           </div>
           <div className="floating-card floating-card-3">
-            <div className="floating-icon"><IconBedrock size={40} /></div>
-            <div className="floating-label">{t('label_bedrock_short')}</div>
+            <div className="floating-icon"><IconAndroid size={40} /></div>
+            <div className="floating-label">Android</div>
           </div>
         </div>
       </div>

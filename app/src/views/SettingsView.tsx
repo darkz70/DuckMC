@@ -127,16 +127,6 @@ export default function SettingsView(p: Props) {
                   onChange={(e) => patch((d) => (d.game.gameDir = e.target.value))}
                 />
               </div>
-              <div className="field">
-                <label>{t('default_edition')}</label>
-                <select
-                  value={s.game.defaultEdition}
-                  onChange={(e) => patch((d) => (d.game.defaultEdition = e.target.value as Settings['game']['defaultEdition']))}
-                >
-                  <option value="java">{t('edition_java')}</option>
-                  <option value="bedrock">{t('edition_bedrock')}</option>
-                </select>
-              </div>
             </div>
           )}
 
@@ -269,7 +259,7 @@ export default function SettingsView(p: Props) {
                   <p className="hint">
                     {t('about_license')}
                     <br />
-                    Кроссплатформенный лаунчер Minecraft: Java + Bedrock.
+                    Кроссплатформенный лаунчер Minecraft: Java Edition.
                   </p>
                   <div className="platform-icons-row" aria-label="Платформы">
                     <PlatformIcon platform="android" size={20} />

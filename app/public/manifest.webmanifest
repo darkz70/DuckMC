@@ -1,7 +1,7 @@
 {
   "name": "DuckMC — лаунчер Minecraft",
   "short_name": "DuckMC",
-  "description": "Кроссплатформенный Minecraft лаунчер: Java + Bedrock",
+  "description": "Кроссплатформенный Minecraft лаунчер (Java Edition)",
   "start_url": "./",
   "display": "standalone",
   "orientation": "any",

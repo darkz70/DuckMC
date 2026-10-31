@@ -2,11 +2,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Settings, VersionInfo, VersionType } from '../core/types';
 import type { T } from '../i18n';
-import { fetchJavaManifest, BEDROCK_SOURCES, type ManifestResult } from '../core/versions';
-import { ProgressBar } from '../components/ui';
-import EditionCards from '../components/EditionCards';
-import { bedrockStatus, DuckMCNative, isNative, nativeErrorText } from '../core/native';
+import { fetchJavaManifest, type ManifestResult } from '../core/versions';
 import JSZip from 'jszip';
+import { ProgressBar } from '../components/ui';
 import {
   downloadFile,
   fmtBytes,
@@ -17,11 +15,7 @@ import {
 import {
   IconCalendar,
   IconCheck,
-  IconCheckCircle,
   IconDownload,
-  IconExternal,
-  IconLock,
-  IconPlay,
   IconX,
 } from '../components/icons';
 
@@ -31,7 +25,6 @@ interface Props {
   t: T;
   settings: Settings;
   onInstalled: (id: string) => void;
-  openExternal: (url: string) => void;
   toast: (msg: string, err?: boolean) => void;
 }
 
@@ -41,7 +34,7 @@ const badgeName = (ty: VersionType, t: T): string => {
     case 'snapshot': return t('filter_snapshot');
     case 'old_beta': return 'Beta';
     case 'old_alpha': return 'Alpha';
-    default: return 'Bedrock';
+    default: return ty;
   }
 };
 
@@ -55,20 +48,14 @@ interface InstallState {
 
 export default function DownloadsView(p: Props) {
   const t = p.t;
-  const [tab, setTab] = useState<'java' | 'bedrock'>('java');
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
   const [manifest, setManifest] = useState<ManifestResult | null>(null);
   const [installing, setInstalling] = useState<InstallState | null>(null);
   const [includeAssets, setIncludeAssets] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
-  const [brStatus, setBrStatus] = useState<{ installed: boolean; version: string } | null>(null);
   const [zipping, setZipping] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const collectedRef = useRef<{ version: string; files: { path: string; data: ArrayBuffer }[] } | null>(null);
-
-  useEffect(() => {
-    bedrockStatus().then((st) => st && setBrStatus(st));
-  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -220,202 +207,83 @@ export default function DownloadsView(p: Props) {
           : t('source_fallback')}
       </p>
 
-      <EditionCards
-        t={t}
-        compact
-        edition={tab}
-        disabled={!!installing}
-        onChange={(e) => setTab(e)}
-      />
+      <div className="dl-toolbar">
+        <input type="text" placeholder={t('search_placeholder')} value={query} onChange={(e) => setQuery(e.target.value)} />
+        <div className="chip-row">
+          {(['all', 'release', 'snapshot', 'old'] as Filter[]).map((f) => (
+            <button key={f} className={'chip' + (filter === f ? ' on' : '')} onClick={() => setFilter(f)}>
+              {t('filter_' + f)}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      {tab === 'java' && (
-        <>
-          <div className="dl-toolbar">
-            <input type="text" placeholder={t('search_placeholder')} value={query} onChange={(e) => setQuery(e.target.value)} />
-            <div className="chip-row">
-              {(['all', 'release', 'snapshot', 'old'] as Filter[]).map((f) => (
-                <button key={f} className={'chip' + (filter === f ? ' on' : '')} onClick={() => setFilter(f)}>
-                  {t('filter_' + f)}
-                </button>
-              ))}
-            </div>
-          </div>
+      <label className="check-row" style={{ marginTop: 0 }}>
+        <input type="checkbox" checked={includeAssets} onChange={(e) => setIncludeAssets(e.target.checked)} disabled={!!installing} />
+        {t('dl_assets_opt')}
+      </label>
 
-          <label className="check-row" style={{ marginTop: 0 }}>
-            <input type="checkbox" checked={includeAssets} onChange={(e) => setIncludeAssets(e.target.checked)} disabled={!!installing} />
-            {t('dl_assets_opt')}
-          </label>
-
-          {collectedRef.current && !installing && (
-            <div className="row" style={{ marginBottom: 18 }}>
-              <button className="btn primary" onClick={() => void saveZip()}>
-                <IconDownload size={16} />
-                <span>
-                  {zipping
-                    ? t('dl_zipping')
-                    : `${t('dl_save_zip')} — ${collectedRef.current.version} (${collectedRef.current.files.length})`}
-                </span>
-              </button>
-              <span className="hint">{t('dl_zip_hint')}</span>
-            </div>
-          )}
-
-          {!manifest && <p className="hint">...</p>}
-
-          <div className="ver-list">
-            {filtered.map((v) => {
-              const isInstalled = p.settings.installedJava.includes(v.id);
-              const isInstalling = installing?.id === v.id;
-              return (
-                <div className="ver-card" key={v.id}>
-                  <div className="top">
-                    <span className="id">{v.id}</span>
-                    <span className={'badge ' + v.type}>{badgeName(v.type, t)}</span>
-                  </div>
-                  <span className="date with-ico">
-                    <IconCalendar size={13} /> {v.releaseTime}
-                  </span>
-                  {isInstalled ? (
-                    <span className="badge installed with-ico">
-                      <IconCheck size={12} /> {t('installed')}
-                    </span>
-                  ) : isInstalling ? (
-                    <>
-                      <ProgressBar percent={installing.percent} detail={installing.status} label={Math.round(installing.percent) + '%'} />
-                      {installing.fileCount > 0 && (
-                        <span className="date">
-                          {installing.fileIdx} / {installing.fileCount}
-                        </span>
-                      )}
-                      <button className="btn danger small" onClick={cancelInstall}>
-                        <IconX size={14} />
-                        <span>{t('cancel')}</span>
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className="btn primary small"
-                      onClick={() => (v.url ? void realInstall(v) : simulateInstall(v))}
-                      disabled={!!installing}
-                    >
-                      <IconDownload size={15} />
-                      <span>{t('install')}</span>
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          {filtered.length === 0 && manifest && <p className="hint">...</p>}
-        </>
+      {collectedRef.current && !installing && (
+        <div className="row" style={{ marginBottom: 18 }}>
+          <button className="btn primary" onClick={() => void saveZip()}>
+            <IconDownload size={16} />
+            <span>
+              {zipping
+                ? t('dl_zipping')
+                : `${t('dl_save_zip')} — ${collectedRef.current.version} (${collectedRef.current.files.length})`}
+            </span>
+          </button>
+          <span className="hint">{t('dl_zip_hint')}</span>
+        </div>
       )}
 
-      {tab === 'bedrock' && (
-        <>
-          <div className="card">
-            <h3>
-              <IconPlay size={18} /> {t('edition_bedrock')}
-            </h3>
+      {!manifest && <p className="hint">...</p>}
 
-            {brStatus ? (
-              <div className="br-status with-ico" style={{ marginBottom: 14 }}>
-                {brStatus.installed ? <IconCheckCircle size={18} /> : <IconLock size={18} />}
-                <span>
-                  {brStatus.installed
-                    ? `${t('br_installed')}${brStatus.version ? ' · v' + brStatus.version : ''}`
-                    : t('br_not_installed')}
-                </span>
+      <div className="ver-list">
+        {filtered.map((v) => {
+          const isInstalled = p.settings.installedJava.includes(v.id);
+          const isInstalling = installing?.id === v.id;
+          return (
+            <div className="ver-card" key={v.id}>
+              <div className="top">
+                <span className="id">{v.id}</span>
+                <span className={'badge ' + v.type}>{badgeName(v.type, t)}</span>
               </div>
-            ) : (
-              <p className="hint" style={{ marginBottom: 14 }}>{t('br_native_only')}</p>
-            )}
-
-            <div className="row">
-              {isNative() && (
-                <button
-                  className="btn primary"
-                  onClick={() =>
-                    DuckMCNative.launchBedrock().catch((e) => p.toast(nativeErrorText(e.message ?? String(e)), true))
-                  }
-                >
-                  <IconPlay size={16} />
-                  <span>{t('br_launch')}</span>
-                </button>
-              )}
-              <button
-                className="btn diamond"
-                onClick={() => {
-                  if (isNative()) {
-                    DuckMCNative.openStore({}).catch(() => p.openExternal(BEDROCK_SOURCES[0].url));
-                  } else {
-                    p.openExternal(BEDROCK_SOURCES[0].url);
-                  }
-                }}
-              >
-                <IconExternal size={16} />
-                <span>{t('br_install_store')}</span>
-              </button>
-
-              {isNative() && (
+              <span className="date with-ico">
+                <IconCalendar size={13} /> {v.releaseTime}
+              </span>
+              {isInstalled ? (
+                <span className="badge installed with-ico">
+                  <IconCheck size={12} /> {t('installed')}
+                </span>
+              ) : isInstalling ? (
                 <>
-                  <button
-                    className="btn"
-                    onClick={() =>
-                      DuckMCNative.pickApkAndInstall()
-                        .then(() => p.toast(t('br_install_started')))
-                        .catch((e) => p.toast(nativeErrorText(e.message ?? String(e)), true))
-                    }
-                  >
-                    <IconDownload size={16} />
-                    <span>{t('br_apk_pick')}</span>
-                  </button>
-                  <button
-                    className="btn"
-                    onClick={() =>
-                      DuckMCNative.pickAddonAndImport()
-                        .then(() => p.toast(t('br_addon_started')))
-                        .catch((e) => p.toast(nativeErrorText(e.message ?? String(e)), true))
-                    }
-                  >
-                    <IconExternal size={16} />
-                    <span>{t('br_addon_pick')}</span>
+                  <ProgressBar percent={installing.percent} detail={installing.status} label={Math.round(installing.percent) + '%'} />
+                  {installing.fileCount > 0 && (
+                    <span className="date">
+                      {installing.fileIdx} / {installing.fileCount}
+                    </span>
+                  )}
+                  <button className="btn danger small" onClick={cancelInstall}>
+                    <IconX size={14} />
+                    <span>{t('cancel')}</span>
                   </button>
                 </>
+              ) : (
+                <button
+                  className="btn primary small"
+                  onClick={() => (v.url ? void realInstall(v) : simulateInstall(v))}
+                  disabled={!!installing}
+                >
+                  <IconDownload size={15} />
+                  <span>{t('install')}</span>
+                </button>
               )}
             </div>
-
-            <p className="hint" style={{ marginTop: 12 }}>{t('br_secure_note')}</p>
-          </div>
-
-          <div className="card">
-            <h3>
-              <IconCheckCircle size={18} /> {t('br_install_store')}
-            </h3>
-            <p className="hint">{t('br_own_note')}</p>
-          </div>
-
-          <div className="card">
-            <h3>
-              <IconLock size={18} /> {t('br_faq_title')}
-            </h3>
-            <p className="hint">{t('br_faq_a')}</p>
-          </div>
-
-          <div className="ver-list">
-            {BEDROCK_SOURCES.map((s) => (
-              <div className="ver-card" key={s.id}>
-                <div className="top">
-                  <span className="id">{s.name}</span>
-                </div>
-                <button className="btn diamond small" onClick={() => p.openExternal(s.url)}>
-                  <IconExternal size={15} />
-                  <span>{t('dl_open_store')}</span>
-                </button>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+          );
+        })}
+      </div>
+      {filtered.length === 0 && manifest && <p className="hint">...</p>}
     </>
   );
 }

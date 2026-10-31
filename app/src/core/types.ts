@@ -1,8 +1,8 @@
 // DuckMC — общие типы
 
-export type Edition = 'java' | 'bedrock';
+export type Edition = 'java';
 
-export type VersionType = 'release' | 'snapshot' | 'old_beta' | 'old_alpha' | 'bedrock';
+export type VersionType = 'release' | 'snapshot' | 'old_beta' | 'old_alpha';
 
 export interface VersionInfo {
   id: string;
@@ -38,7 +38,6 @@ export interface GameSettings {
   gameDir: string;
   defaultEdition: Edition;
   defaultVersionJava: string;
-  defaultVersionBedrock: string;
 }
 
 export interface LauncherSettings {
@@ -69,7 +68,6 @@ export interface Settings {
   accounts: AccountSettings;
   downloads: DownloadSettings;
   installedJava: string[];
-  installedBedrock: string[];
 }
 
 export type LaunchPhaseId =

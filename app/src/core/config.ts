@@ -15,7 +15,6 @@ export const DEFAULT_SETTINGS: Settings = {
     gameDir: '',
     defaultEdition: 'java',
     defaultVersionJava: '1.21.10',
-    defaultVersionBedrock: 'latest',
   },
   launcher: {
     language: 'ru',
@@ -36,7 +35,6 @@ export const DEFAULT_SETTINGS: Settings = {
     torrentMirror: false,
   },
   installedJava: [],
-  installedBedrock: [],
 };
 
 function deepMerge<T>(base: T, patch: Partial<T> | null | undefined): T {

@@ -1,6 +1,6 @@
 // DuckMC — корневой компонент: каркас, состояние, запуск игры
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Account, Edition, LaunchProgress, Settings, VersionInfo } from './core/types';
+import type { Account, LaunchProgress, Settings, VersionInfo } from './core/types';
 import { loadAccounts, loadSettings, saveAccounts, saveSettings } from './core/config';
 import { detectPlatform, platformLabel, webAdapter } from './core/platform';
 import { LaunchController } from './core/launch';
@@ -21,7 +21,6 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [settings, setSettingsState] = useState<Settings>(() => loadSettings());
   const [accounts, setAccountsState] = useState<Account[]>(() => loadAccounts());
-  const [edition, setEdition] = useState<Edition>(settings.game.defaultEdition);
   const [javaVersions, setJavaVersions] = useState<VersionInfo[]>(FALLBACK_JAVA_VERSIONS);
   const [launch, setLaunch] = useState<{ running: boolean; progress: LaunchProgress | null }>({
     running: false,
@@ -69,7 +68,7 @@ export default function App() {
     setLaunch({ running: true, progress: { phase: 'preparing', percent: 0, detail: '…' } });
     void ctl.launch(
       {
-        edition,
+        edition: 'java',
         version: null,
         account: active ?? null,
         settings,
@@ -83,7 +82,7 @@ export default function App() {
         },
       },
     );
-  }, [accounts, edition, settings, toast]);
+  }, [accounts, settings, toast]);
 
   const onCancel = useCallback(() => {
     controllerRef.current?.cancel();
@@ -134,8 +133,6 @@ export default function App() {
             t={t}
             settings={settings}
             accounts={accounts}
-            edition={edition}
-            setEdition={setEdition}
             javaVersions={javaVersions}
             launchState={launch}
             onPlay={onPlay}
@@ -143,7 +140,6 @@ export default function App() {
             goAccounts={() => setView('accounts')}
             goDownloads={() => setView('downloads')}
             setVersionJava={(v) => setSettings({ ...settings, game: { ...settings.game, defaultVersionJava: v } })}
-            setVersionBedrock={(v) => setSettings({ ...settings, game: { ...settings.game, defaultVersionBedrock: v } })}
           />
         )}
         {view === 'downloads' && (
@@ -151,7 +147,6 @@ export default function App() {
             t={t}
             settings={settings}
             toast={toast}
-            openExternal={(u) => webAdapter.openExternal(u)}
             onInstalled={(id) =>
               setSettings({ ...settings, installedJava: settings.installedJava.includes(id) ? settings.installedJava : [...settings.installedJava, id] })
             }

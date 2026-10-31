@@ -1,6 +1,5 @@
 // DuckMC — список версий Minecraft.
 // Java: официальный манифест Mojang (piston-meta). При CORS-блокировке — встроенный кэш.
-// Bedrock: распространять платный контент нельзя — показываем официальные источники.
 import type { VersionInfo } from './types';
 
 export const JAVA_MANIFEST_URL = 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json';
@@ -72,10 +71,3 @@ export async function fetchJavaManifest(): Promise<ManifestResult> {
   }
 }
 
-// Bedrock распространяется только через официальные магазины.
-export const BEDROCK_SOURCES = [
-  { id: 'android', name: 'Android — Google Play', url: 'https://play.google.com/store/apps/details?id=com.mojang.minecraftpe' },
-  { id: 'ios', name: 'iOS — App Store', url: 'https://apps.apple.com/app/minecraft/id479516143' },
-  { id: 'win', name: 'Windows — Microsoft Store', url: 'https://www.microsoft.com/store/productId/9NBLGGH2JHXJ' },
-  { id: 'other', name: 'Другие платформы — minecraft.net', url: 'https://www.minecraft.net/ru-ru/get-minecraft' },
-] as const;

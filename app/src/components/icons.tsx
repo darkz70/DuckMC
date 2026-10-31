@@ -214,13 +214,6 @@ export const IconJava = (p: IconProps) => (
   </Base>
 );
 
-export const IconBedrock = (p: IconProps) => (
-  <Base {...p}>
-    <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
-    <path d="M10.5 18.5h3" />
-  </Base>
-);
-
 /* ---------- Платформы ---------- */
 
 export const IconWindows = (p: IconProps) => (
