@@ -4,6 +4,8 @@ import type { Settings, VersionInfo, VersionType } from '../core/types';
 import type { T } from '../i18n';
 import { fetchJavaManifest, BEDROCK_SOURCES, type ManifestResult } from '../core/versions';
 import { ProgressBar } from '../components/ui';
+import EditionCards from '../components/EditionCards';
+import { bedrockStatus, DuckMCNative, isNative, nativeErrorText } from '../core/native';
 import {
   downloadFile,
   fmtBytes,
@@ -11,13 +13,13 @@ import {
   type EngineTask,
 } from '../core/engine';
 import {
-  IconBedrock,
   IconCalendar,
   IconCheck,
+  IconCheckCircle,
   IconDownload,
   IconExternal,
-  IconJava,
   IconLock,
+  IconPlay,
   IconX,
 } from '../components/icons';
 
@@ -58,6 +60,11 @@ export default function DownloadsView(p: Props) {
   const [installing, setInstalling] = useState<InstallState | null>(null);
   const [includeAssets, setIncludeAssets] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const [brStatus, setBrStatus] = useState<{ installed: boolean; version: string } | null>(null);
+
+  useEffect(() => {
+    bedrockStatus().then((st) => st && setBrStatus(st));
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -181,16 +188,13 @@ export default function DownloadsView(p: Props) {
           : t('source_fallback')}
       </p>
 
-      <div className="edition-switch" style={{ marginBottom: 16 }}>
-        <button className={tab === 'java' ? 'on' : ''} onClick={() => setTab('java')}>
-          <IconJava size={17} />
-          <span>{t('label_java')}</span>
-        </button>
-        <button className={tab === 'bedrock' ? 'on' : ''} onClick={() => setTab('bedrock')}>
-          <IconBedrock size={17} />
-          <span>{t('label_bedrock_short')}</span>
-        </button>
-      </div>
+      <EditionCards
+        t={t}
+        compact
+        edition={tab}
+        disabled={!!installing}
+        onChange={(e) => setTab(e)}
+      />
 
       {tab === 'java' && (
         <>
@@ -261,19 +265,89 @@ export default function DownloadsView(p: Props) {
       )}
 
       {tab === 'bedrock' && (
-        <div className="card">
-          <h3>
-            <IconLock size={18} /> {t('bedrock_note_title')}
-          </h3>
-          <p className="hint">{t('bedrock_note')}</p>
-          <div className="card" style={{ marginTop: 14, marginBottom: 0 }}>
-            <p className="hint">
-              <b style={{ color: 'var(--text)' }}>{t('dl_mirror_warn_title')}</b>
-              <br />
-              {t('dl_mirror_warn')}
-            </p>
+        <>
+          <div className="card">
+            <h3>
+              <IconPlay size={18} /> {t('edition_bedrock')}
+            </h3>
+
+            {brStatus ? (
+              <div className="br-status with-ico" style={{ marginBottom: 14 }}>
+                {brStatus.installed ? <IconCheckCircle size={18} /> : <IconLock size={18} />}
+                <span>
+                  {brStatus.installed
+                    ? `${t('br_installed')}${brStatus.version ? ' · v' + brStatus.version : ''}`
+                    : t('br_not_installed')}
+                </span>
+              </div>
+            ) : (
+              <p className="hint" style={{ marginBottom: 14 }}>{t('br_native_only')}</p>
+            )}
+
+            <div className="row">
+              {isNative() && (
+                <button
+                  className="btn primary"
+                  onClick={() =>
+                    DuckMCNative.launchBedrock().catch((e) => p.toast(nativeErrorText(e.message ?? String(e)), true))
+                  }
+                >
+                  <IconPlay size={16} />
+                  <span>{t('br_launch')}</span>
+                </button>
+              )}
+              <button
+                className="btn diamond"
+                onClick={() => {
+                  if (isNative()) {
+                    DuckMCNative.openStore({}).catch(() => p.openExternal(BEDROCK_SOURCES[0].url));
+                  } else {
+                    p.openExternal(BEDROCK_SOURCES[0].url);
+                  }
+                }}
+              >
+                <IconExternal size={16} />
+                <span>{t('br_install_store')}</span>
+              </button>
+              {isNative() && (
+                <>
+                  <button
+                    className="btn"
+                    onClick={() =>
+                      DuckMCNative.pickApkAndInstall()
+                        .then(() => p.toast(t('br_install_started')))
+                        .catch((e) => p.toast(nativeErrorText(e.message ?? String(e)), true))
+                    }
+                  >
+                    <IconDownload size={16} />
+                    <span>{t('br_apk_pick')}</span>
+                  </button>
+                  <button
+                    className="btn"
+                    onClick={() =>
+                      DuckMCNative.pickAddonAndImport()
+                        .then(() => p.toast(t('br_addon_started')))
+                        .catch((e) => p.toast(nativeErrorText(e.message ?? String(e)), true))
+                    }
+                  >
+                    <IconExternal size={16} />
+                    <span>{t('br_addon_pick')}</span>
+                  </button>
+                </>
+              )}
+            </div>
+
+            <p className="hint" style={{ marginTop: 12 }}>{t('br_secure_note')}</p>
           </div>
-          <div className="ver-list" style={{ marginTop: 14 }}>
+
+          <div className="card">
+            <h3>
+              <IconLock size={18} /> {t('dl_mirror_warn_title')}
+            </h3>
+            <p className="hint">{t('dl_mirror_warn')}</p>
+          </div>
+
+          <div className="ver-list">
             {BEDROCK_SOURCES.map((s) => (
               <div className="ver-card" key={s.id}>
                 <div className="top">
@@ -286,10 +360,7 @@ export default function DownloadsView(p: Props) {
               </div>
             ))}
           </div>
-          <p className="hint" style={{ marginTop: 12 }}>
-            {t('bedrock_future')}
-          </p>
-        </div>
+        </>
       )}
     </>
   );

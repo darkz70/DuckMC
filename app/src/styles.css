@@ -764,3 +764,108 @@ p.hint.with-ico svg { color: var(--accent); flex-shrink: 0; margin-top: 3px; }
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ---------- Карточки изданий (новый переключатель) ---------- */
+
+.edition-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+  max-width: 640px;
+}
+.edition-grid.compact { max-width: none; }
+
+.edition-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  font-family: inherit;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 16px 18px;
+  cursor: pointer;
+  color: var(--text);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+  transition: transform 0.2s, border-color 0.25s, background 0.25s, box-shadow 0.25s;
+}
+.edition-card:hover:not(:disabled) { transform: translateY(-3px); border-color: rgba(255, 255, 255, 0.2); }
+.edition-card:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.edition-card .ed-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: color 0.25s, border-color 0.25s, background 0.25s;
+}
+.edition-card .ed-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.edition-card .ed-name { font-weight: 800; font-size: 1rem; letter-spacing: -0.3px; }
+.edition-card .ed-sub {
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.edition-card .ed-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: var(--accent);
+}
+
+.edition-card.on {
+  border-color: var(--accent);
+  background: rgba(34, 197, 94, 0.08);
+  box-shadow: 0 0 0 3px var(--accent-glow), var(--shadow);
+}
+.edition-card.on .ed-ico {
+  color: var(--accent);
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.edition-card.bedrock.on {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.08);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22), var(--shadow);
+}
+.edition-card.bedrock.on .ed-ico {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.edition-grid.compact .edition-card { padding: 12px 14px; }
+.edition-grid.compact .ed-ico { width: 36px; height: 36px; border-radius: 10px; }
+.edition-grid.compact .ed-name { font-size: 0.9rem; }
+.edition-grid.compact .ed-sub { display: none; }
+
+@media (max-width: 520px) {
+  .edition-grid { gap: 10px; }
+  .edition-card { padding: 13px 14px; gap: 10px; }
+  .edition-card .ed-ico { width: 38px; height: 38px; }
+  .edition-card .ed-name { font-size: 0.88rem; }
+  .edition-card .ed-sub { font-size: 0.66rem; }
+}
+
+/* Статус Bedrock */
+.br-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.br-status svg { color: var(--accent); }

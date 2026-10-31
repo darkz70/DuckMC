@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import type { Account, Edition, LaunchProgress, Settings, VersionInfo } from '../core/types';
 import type { T } from '../i18n';
 import { ProgressBar } from '../components/ui';
+import EditionCards from '../components/EditionCards';
 import {
   IconBedrock,
   IconCheckCircle,
