@@ -6,9 +6,11 @@ import { fetchJavaManifest, BEDROCK_SOURCES, type ManifestResult } from '../core
 import { ProgressBar } from '../components/ui';
 import EditionCards from '../components/EditionCards';
 import { bedrockStatus, DuckMCNative, isNative, nativeErrorText } from '../core/native';
+import JSZip from 'jszip';
 import {
   downloadFile,
   fmtBytes,
+  gameRelativePath,
   resolveJavaTasks,
   type EngineTask,
 } from '../core/engine';
@@ -62,6 +64,8 @@ export default function DownloadsView(p: Props) {
   const [includeAssets, setIncludeAssets] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const [brStatus, setBrStatus] = useState<{ installed: boolean; version: string } | null>(null);
+  const [zipping, setZipping] = useState<string | null>(null);
+  const collectedRef = useRef<{ version: string; files: { path: string; data: ArrayBuffer }[] } | null>(null);
 
   useEffect(() => {
     bedrockStatus().then((st) => st && setBrStatus(st));
@@ -121,6 +125,7 @@ export default function DownloadsView(p: Props) {
     let done = 0;
     let hashFails = 0;
     let netFails = 0;
+    const collected: { path: string; data: ArrayBuffer }[] = [];
 
     for (let i = 0; i < tasks.length; i++) {
       if (ctl.signal.aborted) {
@@ -156,10 +161,12 @@ export default function DownloadsView(p: Props) {
         continue;
       }
       if (r.hashOk === false) hashFails++;
+      if (r.data) collected.push({ path: gameRelativePath(task, v.id), data: r.data });
     }
 
     setInstalling(null);
     abortRef.current = null;
+    collectedRef.current = { version: v.id, files: collected };
     p.onInstalled(v.id);
     if (netFails === 0) {
       p.toast(
@@ -175,6 +182,31 @@ export default function DownloadsView(p: Props) {
     abortRef.current?.abort();
     abortRef.current = null;
     setInstalling(null);
+  };
+
+  /** Упаковка скачанных файлов в ZIP и сохранение на устройство */
+  const saveZip = async () => {
+    const c = collectedRef.current;
+    if (!c || zipping) return;
+    setZipping(c.version);
+    try {
+      const zip = new JSZip();
+      for (const f of c.files) zip.file(f.path, f.data);
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `duckmc-${c.version}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      p.toast(`${c.version}: ${fmtBytes(blob.size)} → ${a.download}`);
+    } catch {
+      p.toast(t('dl_error'), true);
+    } finally {
+      setZipping(null);
+    }
   };
 
   return (
@@ -214,6 +246,20 @@ export default function DownloadsView(p: Props) {
             <input type="checkbox" checked={includeAssets} onChange={(e) => setIncludeAssets(e.target.checked)} disabled={!!installing} />
             {t('dl_assets_opt')}
           </label>
+
+          {collectedRef.current && !installing && (
+            <div className="row" style={{ marginBottom: 18 }}>
+              <button className="btn primary" onClick={() => void saveZip()}>
+                <IconDownload size={16} />
+                <span>
+                  {zipping
+                    ? t('dl_zipping')
+                    : `${t('dl_save_zip')} — ${collectedRef.current.version} (${collectedRef.current.files.length})`}
+                </span>
+              </button>
+              <span className="hint">{t('dl_zip_hint')}</span>
+            </div>
+          )}
 
           {!manifest && <p className="hint">...</p>}
 

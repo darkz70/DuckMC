@@ -89,6 +89,12 @@ const dict: Record<string, [ru: string, en: string]> = {
   dl_hash_warn: ['предупреждение: SHA-1 не совпал', 'warning: SHA-1 mismatch'],
   dl_partial: ['часть файлов не скачалась (возможно, CORS в браузере)', 'some files failed (possibly browser CORS)'],
   dl_open_store: ['Открыть магазин', 'Open store'],
+  dl_save_zip: ['Сохранить игру (ZIP)', 'Save game (ZIP)'],
+  dl_zipping: ['Упаковываем…', 'Packing…'],
+  dl_zip_hint: [
+    'Структура как в .minecraft: versions/, libraries/, assets/ — распакуйте в папку игры или используйте с любым лаунчером. Файлы остаются у вас навсегда.',
+    'Structure like .minecraft: versions/, libraries/, assets/ — unpack into the game folder or use with any launcher. The files are yours forever.',
+  ],
   dl_mirror_warn_title: ['Почему нет сторонних APK-сайтов (mcpehub и подобных)?', 'Why no third-party APK sites (like mcpehub)?'],
   dl_mirror_warn: [
     'Bedrock — платная игра. Сторонние сайты раздают перепакованные APK: с вшитой рекламой, неофициальными серверами и без обновлений из Play Store. Это нарушает лицензию Mojang/Microsoft (риск для проекта) и небезопасно — в перепакованных сборках встречаются вирусы. Официальный APK не содержит никакой рекламы. DuckMC качает Java только с серверов Mojang, а Bedrock ставит из официальных магазинов.',

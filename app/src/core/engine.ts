@@ -129,6 +129,7 @@ export interface DownloadFileResult {
   ok: boolean;
   received: number;
   hashOk?: boolean;
+  data?: ArrayBuffer;
   error?: string;
 }
 
@@ -154,14 +155,15 @@ export async function downloadFile(
       }
     }
     const buf = concatChunks(chunks, received);
+    let hashOk: boolean | undefined;
     if (task.sha1) {
       const digest = await crypto.subtle.digest('SHA-1', buf);
       const hex = Array.from(new Uint8Array(digest))
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('');
-      return { ok: true, received, hashOk: hex === task.sha1 };
+      hashOk = hex === task.sha1;
     }
-    return { ok: true, received };
+    return { ok: true, received, hashOk, data: buf };
   } catch (e) {
     return { ok: false, received: 0, error: e instanceof Error ? e.message : String(e) };
   }
@@ -182,4 +184,17 @@ export function fmtBytes(n: number): string {
   if (n >= 1048576) return (n / 1048576).toFixed(1) + ' МБ';
   if (n >= 1024) return (n / 1024).toFixed(0) + ' КБ';
   return n + ' Б';
+}
+
+/** Путь файла внутри структуры, как в .minecraft */
+export function gameRelativePath(task: EngineTask, versionId: string): string {
+  if (task.kind === 'client') return `versions/${versionId}/${versionId}.jar`;
+  if (task.kind === 'asset-index') {
+    const name = task.label.replace(/^assets-index \(|\)$/g, '') || 'legacy';
+    return `assets/indexes/${name}.json`;
+  }
+  if (task.kind === 'asset') return task.label.replace(/^assets\//, 'assets/objects/');
+  // библиотека: берём путь после домена
+  const m = task.url.match(/^https?:\/\/[^/]+\/(.+)$/);
+  return m ? 'libraries/' + m[1] : 'libraries/' + task.label;
 }
