@@ -5,7 +5,6 @@ import type { T } from '../i18n';
 import { ProgressBar } from '../components/ui';
 import {
   IconAlert,
-  IconAndroid,
   IconCheckCircle,
   IconCompass,
   IconDownload,
@@ -137,20 +136,6 @@ export default function HomeView(p: Props) {
           </div>
         </div>
 
-        <div className="hero-visual">
-          <div className="floating-card">
-            <img className="fc-img" src="./logo.jpg" alt="DuckMC" />
-            <div className="floating-label">DuckMC</div>
-          </div>
-          <div className="floating-card floating-card-2">
-            <div className="floating-icon"><IconJava size={40} /></div>
-            <div className="floating-label">Java</div>
-          </div>
-          <div className="floating-card floating-card-3">
-            <div className="floating-icon"><IconAndroid size={40} /></div>
-            <div className="floating-label">Android</div>
-          </div>
-        </div>
       </div>
     </section>
   );

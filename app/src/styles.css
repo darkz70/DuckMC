@@ -869,3 +869,6 @@ p.hint.with-ico svg { color: var(--accent); flex-shrink: 0; margin-top: 3px; }
   font-size: 0.95rem;
 }
 .br-status svg { color: var(--accent); }
+
+/* Герой без визуальной колонки — контент по центру слева */
+.hero-inner { grid-template-columns: 1fr; max-width: 760px; }
