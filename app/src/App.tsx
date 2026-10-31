@@ -17,6 +17,7 @@ type View = 'home' | 'downloads' | 'accounts' | 'settings';
 
 export default function App() {
   const [view, setView] = useState<View>('home');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [settings, setSettingsState] = useState<Settings>(() => loadSettings());
   const [accounts, setAccountsState] = useState<Account[]>(() => loadAccounts());
   const [edition, setEdition] = useState<Edition>(settings.game.defaultEdition);
@@ -94,28 +95,37 @@ export default function App() {
     ['settings', '⚙️', t('nav_settings')],
   ];
 
+  const go = (v: View) => {
+    setView(v);
+    setMenuOpen(false);
+  };
+
   return (
     <div className="app">
-      <aside className="sidebar">
-        <div className="brand">
-          <img src="./logo.jpg" alt="DuckMC" />
-          <span className="name">DuckMC</span>
-          <span className="quack">кря-кря! 🦆</span>
-        </div>
-        {navItems.map(([id, ico, label]) => (
-          <button key={id} className={'nav-item' + (view === id ? ' active' : '')} onClick={() => setView(id)}>
-            <span className="ico">{ico}</span>
-            <span>{label}</span>
+      <nav className="navbar">
+        <div className="container nav-inner">
+          <button className="logo" onClick={() => go('home')} aria-label="DuckMC">
+            <img src="./logo.jpg" alt="DuckMC" className="logo-img" />
+            <span className="logo-text">DuckMC</span>
           </button>
-        ))}
-        <div className="platform-chip">
-          {platformIcon(platform)} {platformLabel(platform)}
-          <br />
-          <b>DuckMC 0.1.0 «Quack»</b>
+          <div className={'nav-links' + (menuOpen ? ' open' : '')}>
+            {navItems.map(([id, ico, label]) => (
+              <button key={id} className={'nav-link' + (view === id ? ' active' : '')} onClick={() => go(id)}>
+                {ico} {label}
+              </button>
+            ))}
+            <span className="nav-chip">
+              {platformIcon(platform)} {platformLabel(platform)} · v0.1.0
+            </span>
+          </div>
+          <button className="nav-toggle" onClick={() => setMenuOpen((o) => !o)} aria-label="Меню">
+            ☰
+          </button>
         </div>
-      </aside>
+      </nav>
 
       <main className="content">
+        <div className="container">
         {view === 'home' && (
           <HomeView
             t={t}
@@ -147,6 +157,7 @@ export default function App() {
           <AccountsView t={t} accounts={accounts} settings={settings} onSaveAccounts={setAccounts} toast={toast} />
         )}
         {view === 'settings' && <SettingsView t={t} settings={settings} setSettings={setSettings} toast={toast} />}
+        </div>
       </main>
 
       {toastMsg && <Toast text={toastMsg.text} error={toastMsg.err} />}

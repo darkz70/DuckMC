@@ -10,6 +10,15 @@ const dict: Record<string, [ru: string, en: string]> = {
 
   // Главная
   home_tagline: ['Кря! Java и Bedrock — в одном лаунчере', 'Quack! Java and Bedrock in one launcher'],
+  hero_kicker: ['Официальный лаунчер DuckMC', 'Official DuckMC launcher'],
+  hero_title_a: ['Играй в Minecraft', 'Play Minecraft'],
+  hero_title_b: ['с DuckMC', 'with DuckMC'],
+  hero_lead: [
+    'Быстрый, простой и бесплатный лаунчер для Java Edition, снапшотов и Бедрока. Скачай и начни играть за секунды.',
+    'Fast, simple and free launcher for Java Edition, snapshots and Bedrock. Download and start playing in seconds.',
+  ],
+  label_java: ['Java', 'Java'],
+  label_bedrock_short: ['Бедрок', 'Bedrock'],
   play: ['ИГРАТЬ', 'PLAY'],
   playing: ['ЗАПУСКАЕМ…', 'LAUNCHING…'],
   cancel: ['Отменить', 'Cancel'],

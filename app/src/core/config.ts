@@ -19,7 +19,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   launcher: {
     language: 'ru',
-    theme: 'light',
+    theme: 'dark',
     closeAfterLaunch: false,
     checkUpdatesOnStart: true,
     discordRpc: false,

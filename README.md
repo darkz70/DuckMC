@@ -3,6 +3,9 @@
 Лаунчер **Java Edition + Bedrock Edition** для **Windows, Android, iOS, Linux и macOS**.
 **Приоритетная платформа — Android.**
 
+Дизайн — в фирменном стиле duckmcweb.vercel.app: тёмное стекло, градиенты,
+зелёный акцент, шрифт Plus Jakarta Sans.
+
 ![DuckMC](app/public/logo.jpg)
 
 ## Что уже работает (версия 0.1.0 «Quack»)

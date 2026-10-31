@@ -252,7 +252,7 @@ function AddAccountModal(props: {
           {device ? (
             <>
               <p style={{ fontWeight: 800 }}>{t('ms_device_hint')}</p>
-              <p style={{ fontSize: 30, fontWeight: 900, letterSpacing: 3, background: 'var(--bg-soft)', padding: '10px 14px', borderRadius: 10, border: '3px solid var(--ink)', textAlign: 'center' }}>
+              <p style={{ fontSize: 30, fontWeight: 900, letterSpacing: 3, background: 'var(--input-bg)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--input-border)', textAlign: 'center' }}>
                 {device.userCode}
               </p>
               <p className="hint">

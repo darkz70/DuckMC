@@ -1,4 +1,4 @@
-// DuckMC — главная: запуск игры
+// DuckMC — главная: герой + запуск игры (стиль duckmcweb.vercel.app)
 import { useMemo } from 'react';
 import type { Account, Edition, LaunchProgress, Settings, VersionInfo } from '../core/types';
 import type { T } from '../i18n';
@@ -48,24 +48,24 @@ export default function HomeView(p: Props) {
 
   return (
     <>
-      <h1 className="view-title">🦆 {t('nav_home')}</h1>
-      <p className="view-sub">{t('home_tagline')}</p>
-
-      <div className="card">
-        <div className="hero">
-          <img className="hero-logo" src="./logo.jpg" alt="DuckMC" />
-          <div className="hero-main">
-            <div className="big-name">DuckMC</div>
-            <div className="tagline">
-              {t('edition_java')} + {t('edition_bedrock')} · Windows · {t('android_first')} 🤖 · iOS · Linux · macOS
-            </div>
+      {/* Герой */}
+      <section className="hero">
+        <div className="hero-inner">
+          <div className="hero-content">
+            <span className="hero-kicker">{t('hero_kicker')}</span>
+            <h1 className="hero-title">
+              {t('hero_title_a')}
+              <br />
+              {t('hero_title_b')}
+            </h1>
+            <p className="lead">{t('hero_lead')}</p>
 
             <div className="edition-switch">
-              <button className={p.edition === 'java' ? 'on' : ''} onClick={() => p.setEdition('java')}>
-                ☕ {t('edition_java')}
+              <button className={'chip' + (p.edition === 'java' ? ' on' : '')} onClick={() => p.setEdition('java')}>
+                ☕ {t('label_java')}
               </button>
-              <button className={p.edition === 'bedrock' ? 'on' : ''} onClick={() => p.setEdition('bedrock')}>
-                📱 {t('edition_bedrock')}
+              <button className={'chip' + (p.edition === 'bedrock' ? ' on' : '')} onClick={() => p.setEdition('bedrock')}>
+                📱 {t('label_bedrock_short')}
               </button>
             </div>
 
@@ -75,9 +75,7 @@ export default function HomeView(p: Props) {
                   className="duck-select"
                   value={selVersion}
                   disabled={p.launchState.running}
-                  onChange={(e) => {
-                    p.setVersionJava(e.target.value);
-                  }}
+                  onChange={(e) => p.setVersionJava(e.target.value)}
                 >
                   {versions.map((v) => (
                     <option key={v.id} value={v.id}>
@@ -108,31 +106,50 @@ export default function HomeView(p: Props) {
               )}
             </div>
 
-            <div style={{ marginTop: 14 }}>
+            {progress && (
+              <ProgressBar
+                percent={progress.percent}
+                detail={phaseIcon(progress.phase) + ' ' + progress.detail}
+                label={progress.phase === 'done' ? t('done') : progress.percent + '%'}
+              />
+            )}
+
+            <div className="acc-hint">
               {active ? (
-                <span className="hint">
+                <>
                   👤 <b>{active.nickname}</b> · {active.provider === 'microsoft' ? 'Microsoft' : active.provider === 'elyby' ? 'ely.by' : t('provider_offline')}
-                </span>
+                </>
               ) : (
-                <button className="btn small" onClick={p.goAccounts}>
+                <button className="btn small outline" onClick={p.goAccounts}>
                   ➕ {t('add_account')}
                 </button>
               )}
             </div>
           </div>
+
+          <div className="hero-visual">
+            <div className="floating-card">
+              <img className="fc-img" src="./logo.jpg" alt="DuckMC" />
+              <div className="floating-label">DuckMC</div>
+            </div>
+            <div className="floating-card floating-card-2">
+              <div className="floating-icon">⛏️</div>
+              <div className="floating-label">{t('label_java')}</div>
+            </div>
+            <div className="floating-card floating-card-3">
+              <div className="floating-icon">📱</div>
+              <div className="floating-label">{t('label_bedrock_short')}</div>
+            </div>
+          </div>
         </div>
+      </section>
 
-        {progress && (
-          <ProgressBar
-            percent={progress.percent}
-            detail={phaseIcon(progress.phase) + ' ' + progress.detail}
-            label={progress.phase === 'done' ? t('done') : progress.percent + '%'}
-          />
-        )}
-      </div>
-
-      <div className="card">
-        <h3>📊 {t('quick_stats')}</h3>
+      {/* Статистика */}
+      <section style={{ marginTop: 40 }}>
+        <h2 className="view-title" style={{ fontSize: '1.4rem' }}>{t('quick_stats')}</h2>
+        <p className="view-sub">
+          {t('your_platform')}: {platformIcon(platform)} {platformLabel(platform)}
+        </p>
         <div className="stat-grid">
           <div className="stat">
             <div className="v">{platformIcon(platform)} {platformLabel(platform)}</div>
@@ -152,18 +169,11 @@ export default function HomeView(p: Props) {
           </div>
         </div>
         {platform !== 'android' && (
-          <p className="hint" style={{ marginTop: 12 }}>
+          <p className="hint" style={{ marginTop: 14 }}>
             🤖 {t('android_first')} — приоритетная платформа: сначала доводим до ума Android (Capacitor/PWA), затем iOS и десктопы.
           </p>
         )}
-      </div>
-
-      <div className="card">
-        <h3>⬇️ {t('nav_downloads')}</h3>
-        <p className="hint">
-          {t('source_fallback')} — <button className="btn small" onClick={p.goDownloads}>{t('nav_downloads')}</button>
-        </p>
-      </div>
+      </section>
     </>
   );
 }
