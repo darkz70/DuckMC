@@ -150,6 +150,7 @@ export default function App() {
           <DownloadsView
             t={t}
             settings={settings}
+            toast={toast}
             openExternal={(u) => webAdapter.openExternal(u)}
             onInstalled={(id) =>
               setSettings({ ...settings, installedJava: settings.installedJava.includes(id) ? settings.installedJava : [...settings.installedJava, id] })

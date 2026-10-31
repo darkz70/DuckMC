@@ -1,9 +1,15 @@
-// DuckMC — вкладка скачивания версий
-import { useEffect, useMemo, useState } from 'react';
+// DuckMC — вкладка скачивания: реальная загрузка Java с серверов Mojang
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Settings, VersionInfo, VersionType } from '../core/types';
 import type { T } from '../i18n';
 import { fetchJavaManifest, BEDROCK_SOURCES, type ManifestResult } from '../core/versions';
 import { ProgressBar } from '../components/ui';
+import {
+  downloadFile,
+  fmtBytes,
+  resolveJavaTasks,
+  type EngineTask,
+} from '../core/engine';
 import {
   IconBedrock,
   IconCalendar,
@@ -12,6 +18,7 @@ import {
   IconExternal,
   IconJava,
   IconLock,
+  IconX,
 } from '../components/icons';
 
 type Filter = 'all' | 'release' | 'snapshot' | 'old';
@@ -19,8 +26,9 @@ type Filter = 'all' | 'release' | 'snapshot' | 'old';
 interface Props {
   t: T;
   settings: Settings;
-  onInstalled: (id: string) => void; // пометить установленной
+  onInstalled: (id: string) => void;
   openExternal: (url: string) => void;
+  toast: (msg: string, err?: boolean) => void;
 }
 
 const badgeName = (ty: VersionType, t: T): string => {
@@ -33,13 +41,23 @@ const badgeName = (ty: VersionType, t: T): string => {
   }
 };
 
+interface InstallState {
+  id: string;
+  percent: number;
+  status: string;
+  fileIdx: number;
+  fileCount: number;
+}
+
 export default function DownloadsView(p: Props) {
   const t = p.t;
   const [tab, setTab] = useState<'java' | 'bedrock'>('java');
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
   const [manifest, setManifest] = useState<ManifestResult | null>(null);
-  const [installing, setInstalling] = useState<{ id: string; percent: number } | null>(null);
+  const [installing, setInstalling] = useState<InstallState | null>(null);
+  const [includeAssets, setIncludeAssets] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -60,9 +78,10 @@ export default function DownloadsView(p: Props) {
     return list.slice(0, 200);
   }, [versions, filter, query]);
 
+  /** Демо-установка для версий из офлайн-кэша (нет метаданных) */
   const simulateInstall = (v: VersionInfo) => {
     if (installing) return;
-    setInstalling({ id: v.id, percent: 0 });
+    setInstalling({ id: v.id, percent: 0, status: t('dl_offline_sim'), fileIdx: 0, fileCount: 0 });
     let pct = 0;
     const timer = setInterval(() => {
       pct += Math.random() * 18 + 6;
@@ -71,9 +90,83 @@ export default function DownloadsView(p: Props) {
         setInstalling(null);
         p.onInstalled(v.id);
       } else {
-        setInstalling({ id: v.id, percent: pct });
+        setInstalling({ id: v.id, percent: pct, status: t('dl_offline_sim'), fileIdx: 0, fileCount: 0 });
       }
     }, 260);
+  };
+
+  /** Реальная загрузка с серверов Mojang: метаданные → файлы → SHA-1 */
+  const realInstall = async (v: VersionInfo) => {
+    if (installing) return;
+    const ctl = new AbortController();
+    abortRef.current = ctl;
+    setInstalling({ id: v.id, percent: 0, status: t('dl_resolving'), fileIdx: 0, fileCount: 0 });
+
+    const resolved = await resolveJavaTasks(v, includeAssets);
+    if (!resolved.ok) {
+      setInstalling(null);
+      p.toast(resolved.error ?? t('dl_error'), true);
+      return;
+    }
+    const tasks: EngineTask[] = resolved.tasks;
+    const total = resolved.totalBytes || 1;
+    let done = 0;
+    let hashFails = 0;
+    let netFails = 0;
+
+    for (let i = 0; i < tasks.length; i++) {
+      if (ctl.signal.aborted) {
+        setInstalling(null);
+        p.toast(t('dl_cancelled'), true);
+        return;
+      }
+      const task = tasks[i];
+      setInstalling({
+        id: v.id,
+        percent: (done / total) * 100,
+        status: `${task.label} · ${fmtBytes(task.size)}`,
+        fileIdx: i + 1,
+        fileCount: tasks.length,
+      });
+      const r = await downloadFile(task, ctl.signal, (delta) => {
+        done += delta;
+        setInstalling({
+          id: v.id,
+          percent: (done / total) * 100,
+          status: `${task.label} · ${fmtBytes(task.size)}`,
+          fileIdx: i + 1,
+          fileCount: tasks.length,
+        });
+      });
+      if (!r.ok) {
+        netFails++;
+        if (ctl.signal.aborted) {
+          setInstalling(null);
+          p.toast(t('dl_cancelled'), true);
+          return;
+        }
+        continue;
+      }
+      if (r.hashOk === false) hashFails++;
+    }
+
+    setInstalling(null);
+    abortRef.current = null;
+    p.onInstalled(v.id);
+    if (netFails === 0) {
+      p.toast(
+        `${v.id}: ${fmtBytes(done)}, SHA-1 OK (${tasks.length})` +
+          (hashFails ? ` · ${t('dl_hash_warn')}: ${hashFails}` : ''),
+      );
+    } else {
+      p.toast(`${v.id}: ${t('dl_partial')} (${netFails})`, true);
+    }
+  };
+
+  const cancelInstall = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setInstalling(null);
   };
 
   return (
@@ -83,7 +176,9 @@ export default function DownloadsView(p: Props) {
         <span>{t('downloads_title')}</span>
       </h1>
       <p className="view-sub">
-        {manifest?.source === 'live' ? t('source_live') : t('source_fallback')}
+        {manifest?.source === 'live'
+          ? t('source_live') + ' · ' + t('dl_engine_note')
+          : t('source_fallback')}
       </p>
 
       <div className="edition-switch" style={{ marginBottom: 16 }}>
@@ -110,7 +205,12 @@ export default function DownloadsView(p: Props) {
             </div>
           </div>
 
-          {!manifest && <p className="hint">⏳ Загружаем манифест…</p>}
+          <label className="check-row" style={{ marginTop: 0 }}>
+            <input type="checkbox" checked={includeAssets} onChange={(e) => setIncludeAssets(e.target.checked)} disabled={!!installing} />
+            {t('dl_assets_opt')}
+          </label>
+
+          {!manifest && <p className="hint">...</p>}
 
           <div className="ver-list">
             {filtered.map((v) => {
@@ -122,13 +222,32 @@ export default function DownloadsView(p: Props) {
                     <span className="id">{v.id}</span>
                     <span className={'badge ' + v.type}>{badgeName(v.type, t)}</span>
                   </div>
-                  <span className="date with-ico"><IconCalendar size={13} /> {v.releaseTime}</span>
+                  <span className="date with-ico">
+                    <IconCalendar size={13} /> {v.releaseTime}
+                  </span>
                   {isInstalled ? (
-                    <span className="badge installed with-ico"><IconCheck size={12} /> {t('installed')}</span>
+                    <span className="badge installed with-ico">
+                      <IconCheck size={12} /> {t('installed')}
+                    </span>
                   ) : isInstalling ? (
-                    <ProgressBar percent={installing.percent} detail={t('installing')} label={Math.round(installing.percent) + '%'} />
+                    <>
+                      <ProgressBar percent={installing.percent} detail={installing.status} label={Math.round(installing.percent) + '%'} />
+                      {installing.fileCount > 0 && (
+                        <span className="date">
+                          {installing.fileIdx} / {installing.fileCount}
+                        </span>
+                      )}
+                      <button className="btn danger small" onClick={cancelInstall}>
+                        <IconX size={14} />
+                        <span>{t('cancel')}</span>
+                      </button>
+                    </>
                   ) : (
-                    <button className="btn primary small" onClick={() => simulateInstall(v)} disabled={!!installing}>
+                    <button
+                      className="btn primary small"
+                      onClick={() => (v.url ? void realInstall(v) : simulateInstall(v))}
+                      disabled={!!installing}
+                    >
                       <IconDownload size={15} />
                       <span>{t('install')}</span>
                     </button>
@@ -137,15 +256,24 @@ export default function DownloadsView(p: Props) {
               );
             })}
           </div>
-          {filtered.length === 0 && manifest && <p className="hint">Ничего не найдено</p>}
+          {filtered.length === 0 && manifest && <p className="hint">...</p>}
         </>
       )}
 
       {tab === 'bedrock' && (
         <div className="card">
-          <h3><IconLock size={18} /> {t('bedrock_note_title')}</h3>
+          <h3>
+            <IconLock size={18} /> {t('bedrock_note_title')}
+          </h3>
           <p className="hint">{t('bedrock_note')}</p>
-          <div className="ver-list" style={{ marginTop: 12 }}>
+          <div className="card" style={{ marginTop: 14, marginBottom: 0 }}>
+            <p className="hint">
+              <b style={{ color: 'var(--text)' }}>{t('dl_mirror_warn_title')}</b>
+              <br />
+              {t('dl_mirror_warn')}
+            </p>
+          </div>
+          <div className="ver-list" style={{ marginTop: 14 }}>
             {BEDROCK_SOURCES.map((s) => (
               <div className="ver-card" key={s.id}>
                 <div className="top">
@@ -153,13 +281,13 @@ export default function DownloadsView(p: Props) {
                 </div>
                 <button className="btn diamond small" onClick={() => p.openExternal(s.url)}>
                   <IconExternal size={15} />
-                  <span>Открыть магазин</span>
+                  <span>{t('dl_open_store')}</span>
                 </button>
               </div>
             ))}
           </div>
           <p className="hint" style={{ marginTop: 12 }}>
-            На Android DuckMC в будущем сможет обнаруживать уже установленную игру (через PackageManager) и запускать её напрямую.
+            {t('bedrock_future')}
           </p>
         </div>
       )}

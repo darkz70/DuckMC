@@ -45,12 +45,30 @@ const dict: Record<string, [ru: string, en: string]> = {
   install: ['Установить', 'Install'],
   installed: ['Установлено', 'Installed'],
   installing: ['Устанавливаем…', 'Installing…'],
-  source_live: ['Источник: официальный манифест Mojang', 'Source: official Mojang manifest'],
+  source_live: ['Источник: официальные серверы Mojang', 'Source: official Mojang servers'],
   source_fallback: ['Офлайн-кэш (демо). Живой список подтянется при доступе к сети', 'Offline cache (demo). Live list loads when network allows'],
+  dl_engine_note: ['реальная загрузка с проверкой SHA-1', 'real download with SHA-1 verification'],
+  dl_resolving: ['Читаем метаданные версии…', 'Reading version metadata…'],
+  dl_offline_sim: ['Офлайн-кэш: демо-установка', 'Offline cache: demo install'],
+  dl_assets_opt: ['Скачивать ассеты тоже (звуки и языки, до ~400 МБ)', 'Also download assets (sounds and languages, up to ~400 MB)'],
+  dl_cancelled: ['Загрузка отменена', 'Download cancelled'],
+  dl_error: ['Ошибка загрузки', 'Download error'],
+  dl_hash_warn: ['предупреждение: SHA-1 не совпал', 'warning: SHA-1 mismatch'],
+  dl_partial: ['часть файлов не скачалась (возможно, CORS в браузере)', 'some files failed (possibly browser CORS)'],
+  dl_open_store: ['Открыть магазин', 'Open store'],
+  dl_mirror_warn_title: ['Почему нет сторонних APK-сайтов (mcpehub и подобных)?', 'Why no third-party APK sites (like mcpehub)?'],
+  dl_mirror_warn: [
+    'Bedrock — платная игра. Сторонние сайты раздают перепакованные APK: с вшитой рекламой, неофициальными серверами и без обновлений из Play Store. Это нарушает лицензию Mojang/Microsoft (риск для проекта) и небезопасно — в перепакованных сборках встречаются вирусы. Официальный APK не содержит никакой рекламы. DuckMC качает Java только с серверов Mojang, а Bedrock ставит из официальных магазинов.',
+    'Bedrock is a paid game. Third-party sites distribute repacked APKs: with embedded ads, unofficial servers, and no Play Store updates. It violates the Mojang/Microsoft license (a risk for the project) and is unsafe — repacked builds are known to carry malware. The official APK contains no ads at all. DuckMC downloads Java only from Mojang servers and installs Bedrock from official stores.',
+  ],
   bedrock_note_title: ['Как получить Bedrock Edition', 'How to get Bedrock Edition'],
   bedrock_note: [
-    'Bedrock — платная игра, её нельзя распространять через сторонние лаунчеры. DuckMC находит установленную игру или открывает официальный магазин:',
-    'Bedrock is a paid game and cannot be distributed by third-party launchers. DuckMC detects an installed copy or opens the official store:',
+    'Bedrock ставится только из официальных магазинов — DuckMC открывает нужную страницу:',
+    'Bedrock is installed only from official stores — DuckMC opens the right page:',
+  ],
+  bedrock_future: [
+    'На Android DuckMC в будущем сможет обнаруживать уже установленную игру (через PackageManager) и запускать её напрямую.',
+    'On Android, DuckMC will be able to detect the installed game (via PackageManager) and launch it directly.',
   ],
 
   // Аккаунты
